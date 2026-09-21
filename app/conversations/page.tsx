@@ -27,9 +27,9 @@ const CONFIDENCE_LABEL: Readonly<Record<string, string>> = {
 
 /** Only `REVIEW` earns the accent: a disagreement is the one thing to go back to. */
 const QUALITY_TONE: Readonly<Record<string, string>> = {
-  ABSORB: 'border-affirm text-affirm',
-  REVIEW: 'border-accent text-accent',
-  DISCARD: 'border-rule text-ink-faint',
+  ABSORB: 'border-nominal text-nominal',
+  REVIEW: 'border-hal text-hal',
+  DISCARD: 'border-seam text-signal-faint',
 };
 
 export default async function ConversationsPage() {
@@ -69,7 +69,7 @@ export default async function ConversationsPage() {
       }
       width="wide"
     >
-      <div className="mb-8 border-t-2 border-ink pt-4">
+      <div className="mb-10 border-t border-seam-lit pt-6">
         <a href="/api/export" className="btn btn-quiet">
           Baixar dataset (JSONL)
         </a>
@@ -80,9 +80,9 @@ export default async function ConversationsPage() {
           Nenhuma conversa avaliada ainda. Abra um chat, receba uma indicação e avalie-a.
         </p>
       ) : (
-        <ol className="space-y-px bg-rule">
+        <ol className="space-y-px bg-seam">
           {conversations.map((conversation) => (
-            <li key={conversation.id} className="bg-paper-raised px-5 py-5">
+            <li key={conversation.id} className="bg-panel px-5 py-5">
               <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-2">
                 <p className="label-caps">
                   {conversation.createdAt.toISOString().slice(0, 10)}
@@ -100,13 +100,13 @@ export default async function ConversationsPage() {
                 {conversation.quality !== null ? (
                   <span
                     className={`label-caps border-l-2 pl-2 ${
-                      QUALITY_TONE[conversation.quality] ?? 'border-rule'
+                      QUALITY_TONE[conversation.quality] ?? 'border-seam'
                     }`}
                   >
                     {QUALITY_LABEL[conversation.quality] ?? conversation.quality}
                   </span>
                 ) : (
-                  <span className="label-caps border-l-2 border-rule pl-2">pendente</span>
+                  <span className="label-caps border-l-2 border-seam pl-2">pendente</span>
                 )}
               </div>
 
@@ -115,17 +115,17 @@ export default async function ConversationsPage() {
               </p>
 
               {conversation.disagreementNote !== null ? (
-                <div className="mt-4 border-l-2 border-accent pl-4 text-[15px] leading-relaxed whitespace-pre-wrap text-ink-soft">
+                <div className="mt-4 border-l-2 border-hal pl-4 text-[15px] leading-relaxed whitespace-pre-wrap text-signal-dim">
                   {conversation.disagreementNote}
                 </div>
               ) : null}
 
               {conversation.correction !== null ? (
-                <div className="mt-4 border-l-2 border-rule-strong pl-4">
+                <div className="mt-4 border-l-2 border-seam-lit pl-4">
                   <p className="label-caps mb-1">Correção</p>
                   <p className="text-[15px] leading-relaxed">{conversation.correction}</p>
                   {conversation.correctionReason !== null ? (
-                    <p className="mt-2 text-[15px] leading-relaxed text-ink-soft">
+                    <p className="mt-2 text-[15px] leading-relaxed text-signal-dim">
                       <span className="label-caps">Porquê</span> {conversation.correctionReason}
                     </p>
                   ) : null}
@@ -133,7 +133,7 @@ export default async function ConversationsPage() {
               ) : null}
 
               {conversation.disagreementNote === null && conversation.correction === null ? (
-                <p className="mt-3 font-label text-[13px] text-ink-faint italic">sem correção</p>
+                <p className="mt-3 font-mono text-[13px] text-signal-faint italic">sem correção</p>
               ) : null}
             </li>
           ))}

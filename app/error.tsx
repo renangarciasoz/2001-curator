@@ -16,9 +16,12 @@ export default function ErrorBoundary({ error, reset }: { error: Error; reset: (
 
   return (
     <div className="mx-auto w-full max-w-2xl px-6 pt-8 pb-28 sm:px-8">
-      <p className="label-caps mb-3">Interrupção</p>
-      <h1 className="font-display text-[34px] leading-[1.15] tracking-tight">Algo deu errado</h1>
-      <p className="mt-3 text-[15px] leading-relaxed text-ink-soft text-pretty">
+      <p className="label-caps mb-4 flex items-center gap-3">
+        <span aria-hidden="true" className="hal-eye" />
+        Falha
+      </p>
+      <h1 className="font-display text-[40px] leading-[1.05] font-light">Algo deu errado</h1>
+      <p className="mt-4 text-[15px] leading-relaxed text-signal-dim text-pretty">
         O Indicador não conseguiu montar esta página. Nada do que você escreveu foi perdido.
       </p>
 

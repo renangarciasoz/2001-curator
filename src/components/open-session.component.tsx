@@ -49,7 +49,7 @@ export function OpenSession() {
 
   return (
     <form
-      className="border-t-2 border-ink pt-5"
+      className="border-t border-seam-lit pt-6"
       onSubmit={(event) => {
         event.preventDefault();
         void open();
@@ -65,17 +65,17 @@ export function OpenSession() {
           type="text"
           value={userId}
           placeholder="cliente-premium-ana"
-          className="field font-label sm:flex-1"
+          className="field font-mono text-[14px] sm:flex-1"
           onChange={(event) => {
             setUserId(event.target.value);
           }}
         />
         <button type="submit" disabled={opening} className="btn btn-primary justify-center">
-          {opening ? 'Abrindo…' : 'Começar uma conversa'}
+          {opening ? 'Abrindo…' : 'Nova conversa'}
         </button>
       </div>
 
-      <p className="mt-3 text-[14px] leading-relaxed text-ink-soft">
+      <p className="mt-3 text-[14px] leading-relaxed text-signal-dim">
         Use o mesmo identificador para continuar a história de um espectador entre sessões. Em
         branco, é uma conversa avulsa.
       </p>

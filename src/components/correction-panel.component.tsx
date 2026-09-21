@@ -147,7 +147,7 @@ export function CorrectionPanel({
 
   if (summary !== null) {
     return (
-      <section className="mt-10 border-t-2 border-ink pt-6">
+      <section className="mt-10 border-t border-seam-lit pt-8">
         <p className="note note-done">{summary}</p>
         <div className="mt-5">
           <button type="button" className="btn btn-quiet" onClick={onRecorded}>
@@ -160,7 +160,7 @@ export function CorrectionPanel({
 
   return (
     <form
-      className="mt-10 border-t-2 border-ink pt-6"
+      className="mt-10 border-t border-seam-lit pt-8"
       onSubmit={(event) => {
         event.preventDefault();
         void record();
@@ -170,7 +170,7 @@ export function CorrectionPanel({
       <h2 className="font-display text-[26px] leading-tight tracking-tight">
         Avaliar a recomendação
       </h2>
-      <p className="mt-2 text-[15px] leading-relaxed text-ink-soft text-pretty">
+      <p className="mt-2 text-[15px] leading-relaxed text-signal-dim text-pretty">
         O que vale aqui é o porquê. Uma correção sem justificativa não é gravada — é ela que ensina
         o modelo na Fase 2.
       </p>
@@ -192,9 +192,9 @@ export function CorrectionPanel({
         />
       </div>
 
-      <div className="mt-9 space-y-px border border-rule bg-rule">
+      <div className="mt-9 space-y-px border border-seam bg-seam">
         {CURATORS.map((name) => (
-          <fieldset key={name} className="bg-paper-raised px-4 py-4">
+          <fieldset key={name} className="bg-panel px-4 py-4">
             <Check
               checked={reviews[name].participates}
               disabled={name === curator}
@@ -207,7 +207,7 @@ export function CorrectionPanel({
             </Check>
 
             {reviews[name].participates ? (
-              <div className="mt-4 border-l border-rule pl-4">
+              <div className="mt-4 border-l border-seam pl-4">
                 <Check
                   checked={reviews[name].hasCorrection}
                   onChange={(checked) => {
@@ -250,12 +250,12 @@ export function CorrectionPanel({
       {bothCorrected ? (
         <fieldset className="mt-8">
           <legend className="label-caps">As duas corrigiram. É a mesma leitura?</legend>
-          <p className="mt-2 text-[15px] leading-relaxed text-ink-soft text-pretty">
+          <p className="mt-2 text-[15px] leading-relaxed text-signal-dim text-pretty">
             Divergência não é problema: as duas leituras ficam registradas lado a lado, sem
             vencedora, e a conversa vai para revisão.
           </p>
 
-          <div className="mt-4 grid grid-cols-2 gap-px border border-rule bg-rule">
+          <div className="mt-4 grid grid-cols-2 gap-px border border-seam bg-seam">
             {[
               { value: true, label: 'Mesma leitura' },
               { value: false, label: 'Leituras diferentes' },
@@ -264,8 +264,8 @@ export function CorrectionPanel({
                 key={String(option.value)}
                 className={`cursor-pointer px-4 py-3 text-center text-[15px] transition-colors ${
                   bothAgree === option.value
-                    ? 'bg-accent-soft text-accent'
-                    : 'bg-paper-raised text-ink-soft hover:text-ink'
+                    ? 'bg-hal-wash text-hal'
+                    : 'bg-panel text-signal-dim hover:text-signal'
                 }`}
               >
                 <input
@@ -373,7 +373,7 @@ function Check({
   return (
     <label
       className={`flex items-baseline gap-3 ${disabled ? '' : 'cursor-pointer'} ${
-        checked ? 'text-ink' : 'text-ink-soft'
+        checked ? 'text-signal' : 'text-signal-dim'
       }`}
     >
       <input

@@ -1,133 +1,154 @@
 @import 'tailwindcss';
 
 /*
- * "Revista 2001" — the printed-matter direction.
+ * "Discovery One" — the Kubrick direction.
  *
- * The 2001 archive published its own magazines; the tool that carries its
- * curation should read like one. Warm paper, a serif sized for long prose, a
- * tight sans in small-caps for labels and metadata, hairline rules instead of
- * boxes, and exactly one accent — ink red.
+ * The store is named after the film, so the tool is built from the film's own
+ * visual language rather than from print:
  *
- * Two people read and write long text here all day, so legibility beats
- * decoration everywhere the two conflict.
+ *   · the monolith — absolute black, perfect rectangles, nothing rounded;
+ *   · the Discovery interiors — cool white on near-black, flat even light,
+ *     thin seams between panels instead of cards and shadows;
+ *   · HAL's lens — one red, used as a point of light and almost never as a
+ *     fill. It is the only saturated colour in the system;
+ *   · the control readouts — amber, and small monospaced caps with wide
+ *     tracking, the way instrument labels read.
+ *
+ * Typography follows the film's own: Jost is a Futura revival, and Futura is
+ * what the title cards and the poster are set in. Inter carries the body text,
+ * because a geometric face at reading size for hours is punishing. IBM Plex
+ * Mono is the instrument voice — labels, metadata, identifiers.
+ *
+ * Restraint is the point. 2001 is mostly greyscale with tiny points of red and
+ * amber; a screen full of glow would read as pastiche, not as the film.
  */
 
 @theme {
-  --font-display: var(--font-instrument-serif), Georgia, 'Times New Roman', serif;
-  --font-prose: var(--font-source-serif), Georgia, 'Times New Roman', serif;
-  --font-label: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-jost), 'Futura', ui-sans-serif, system-ui, sans-serif;
+  --font-ui: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-plex-mono), ui-monospace, 'SF Mono', monospace;
 
-  /* Paper and ink. Semantic names so components never hardcode a hex. */
-  --color-paper: #faf7f1;
-  --color-paper-raised: #fffdf9;
-  --color-paper-sunk: #f2ede3;
-  --color-rule: #ddd5c7;
-  --color-rule-strong: #bdb2a0;
-  --color-ink: #1c1814;
-  --color-ink-soft: #6a6154;
-  --color-ink-faint: #948b7c;
-  --color-accent: #8c2018;
-  --color-accent-soft: #f3e4e1;
-  --color-flag: #8a5a00;
-  --color-affirm: #2f5d35;
-}
+  /* Hull and light. */
+  --color-space: #08090b;
+  --color-panel: #101317;
+  --color-recess: #16191e;
+  --color-seam: #23282f;
+  --color-seam-lit: #39414b;
+  --color-signal: #e9ecf0;
+  --color-signal-dim: #8d96a1;
+  --color-signal-faint: #5c646e;
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    /* Night reading, still on paper: warm charcoal, never a blue-black. */
-    --color-paper: #15120f;
-    --color-paper-raised: #1e1a16;
-    --color-paper-sunk: #262119;
-    --color-rule: #383025;
-    --color-rule-strong: #554a3a;
-    --color-ink: #efe8dc;
-    --color-ink-soft: #a89e8e;
-    --color-ink-faint: #7d7365;
-    --color-accent: #e08d80;
-    --color-accent-soft: #33211d;
-    --color-flag: #d9a441;
-    --color-affirm: #8fc294;
-  }
+  /* HAL. Used as a point of light, not as a surface. */
+  --color-hal: #ff3b24;
+  --color-hal-wash: #2a1310;
+
+  /* Instrument readouts. */
+  --color-readout: #f0a202;
+  --color-nominal: #6fd3b8;
 }
 
 @layer base {
   html {
-    color-scheme: light dark;
+    color-scheme: dark;
   }
 
   body {
-    background-color: var(--color-paper);
-    color: var(--color-ink);
-    font-family: var(--font-prose);
+    background-color: var(--color-space);
+    color: var(--color-signal);
+    font-family: var(--font-ui);
     -webkit-font-smoothing: antialiased;
   }
 
-  /* The reading measure. Long curatorial prose past ~70 characters is a slog. */
   ::selection {
-    background-color: var(--color-accent-soft);
+    background-color: var(--color-hal);
+    color: var(--color-space);
   }
 
   :focus-visible {
-    outline: 2px solid var(--color-accent);
+    outline: 1px solid var(--color-hal);
     outline-offset: 2px;
   }
 }
 
 @layer components {
   /*
-   * Used on every label, byline and tag: the small-caps voice of the magazine.
-   * It appears often enough that repeating six utilities each time would bury
-   * the markup.
+   * The instrument voice: every label, byline and tag. Monospaced, wide
+   * tracking, small — the way a panel legend is set, and the way the film's
+   * title cards space their capitals.
    */
   .label-caps {
-    font-family: var(--font-label);
+    font-family: var(--font-mono);
     font-size: 0.6875rem;
-    font-weight: 600;
-    letter-spacing: 0.14em;
+    font-weight: 500;
+    letter-spacing: 0.18em;
     text-transform: uppercase;
-    color: var(--color-ink-faint);
+    color: var(--color-signal-faint);
   }
 
   /*
-   * Form controls and buttons appear in every view. Repeating a dozen
-   * utilities at each of the ~30 call sites would bury the markup that
-   * actually differs, so the shared shape lives here and the pages express
-   * only their variations.
-   *
-   * Square corners on purpose: nothing on a printed page is rounded.
+   * The monolith, at the size of a logo mark. Blacker than the ground it sits
+   * on, defined only by a lit edge — which is how it reads on screen in the
+   * film. Proportions follow the 1:4 of the 1:4:9 slab.
+   */
+  .monolith {
+    display: inline-block;
+    width: 7px;
+    height: 28px;
+    background-color: #000000;
+    box-shadow: inset 0 0 0 1px var(--color-seam-lit);
+  }
+
+  /* HAL's lens. The only thing in the interface allowed to glow. */
+  .hal-eye {
+    display: inline-block;
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 9999px;
+    background-color: var(--color-hal);
+    box-shadow:
+      0 0 0 2px var(--color-hal-wash),
+      0 0 10px 1px color-mix(in srgb, var(--color-hal) 55%, transparent);
+  }
+
+  /*
+   * Controls. Square, seamed, flat — a panel cut into the hull, never a card
+   * floating above it. Repeating these utilities at ~30 call sites would bury
+   * the markup that actually differs.
    */
   .field {
-    @apply w-full border border-rule bg-paper-raised px-3 py-2;
-    @apply font-prose text-[15px] leading-relaxed text-ink;
-    @apply placeholder:text-ink-faint focus:border-accent focus:outline-none;
+    @apply w-full border border-seam bg-recess px-3 py-2.5;
+    @apply font-ui text-[15px] leading-relaxed text-signal;
+    @apply placeholder:text-signal-faint;
+    @apply focus:border-hal focus:outline-none;
   }
 
   .btn {
-    @apply inline-flex cursor-pointer items-center gap-2 border px-4 py-2;
-    @apply font-label text-[13px] font-medium tracking-wide transition-colors;
-    @apply disabled:cursor-not-allowed disabled:opacity-45;
+    @apply inline-flex cursor-pointer items-center gap-2 border px-4 py-2.5;
+    @apply font-mono text-[11px] font-medium tracking-[0.16em] uppercase;
+    @apply transition-colors disabled:cursor-not-allowed disabled:opacity-40;
   }
 
   .btn-primary {
-    @apply border-accent bg-accent text-paper-raised hover:brightness-110;
+    @apply border-hal bg-hal text-space;
+    @apply hover:border-signal hover:bg-signal;
   }
 
   .btn-quiet {
-    @apply border-rule bg-transparent text-ink-soft;
-    @apply hover:border-rule-strong hover:text-ink;
+    @apply border-seam-lit bg-transparent text-signal-dim;
+    @apply hover:border-signal-dim hover:text-signal;
   }
 
-  /* A marginal note: a rule in the gutter, the way a magazine flags an aside. */
+  /* A readout: a lit edge in the margin, the way a panel flags a condition. */
   .note {
-    @apply border-l-2 border-rule-strong bg-paper-sunk py-3 pr-4 pl-4;
-    @apply text-[15px] leading-relaxed;
+    @apply border-l-2 border-seam-lit bg-panel py-3 pr-4 pl-4;
+    @apply text-[15px] leading-relaxed text-signal-dim;
   }
 
   .note-alert {
-    @apply border-accent;
+    @apply border-hal text-signal;
   }
 
   .note-done {
-    @apply border-affirm;
+    @apply border-nominal text-signal;
   }
 }

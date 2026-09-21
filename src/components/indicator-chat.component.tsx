@@ -160,7 +160,7 @@ export function IndicatorChat({
   return (
     <>
       {turns.length === 0 ? (
-        <p className="text-[15px] leading-relaxed text-ink-soft italic">
+        <p className="text-[15px] leading-relaxed text-signal-dim italic">
           Traga um pedido real, ou teste uma persona de espectador. O Indicador vai perguntar antes
           de indicar.
         </p>
@@ -171,7 +171,7 @@ export function IndicatorChat({
               // The transcript only grows at the end; the position is stable by construction.
               key={`${String(position)}-${turn.author}`}
               className={`border-l-2 pl-5 ${
-                turn.author === 'CURATOR' ? 'border-rule' : 'border-accent'
+                turn.author === 'CURATOR' ? 'border-seam' : 'border-hal'
               }`}
             >
               <p className="label-caps mb-2">
@@ -179,7 +179,7 @@ export function IndicatorChat({
               </p>
               <div
                 className={`text-[17px] leading-[1.7] whitespace-pre-wrap ${
-                  turn.author === 'CURATOR' ? 'text-ink-soft' : 'text-ink'
+                  turn.author === 'CURATOR' ? 'text-signal-dim' : 'text-signal'
                 }`}
               >
                 {turn.text}
@@ -190,12 +190,9 @@ export function IndicatorChat({
       )}
 
       {tool !== null ? (
-        <p className="mt-6 flex items-center gap-2 font-label text-[13px] text-ink-faint italic">
-          <span
-            aria-hidden="true"
-            className="inline-block size-1.5 animate-pulse rounded-full bg-accent"
-          />
-          O Indicador está {tool}…
+        <p className="mt-6 flex items-center gap-3 font-mono text-[11px] tracking-[0.16em] text-signal-dim uppercase">
+          <span aria-hidden="true" className="hal-eye animate-pulse" />
+          {tool}
         </p>
       ) : null}
 
@@ -206,7 +203,7 @@ export function IndicatorChat({
       ) : null}
 
       <form
-        className="mt-10 border-t-2 border-ink pt-5"
+        className="mt-12 border-t border-seam-lit pt-6"
         onSubmit={(event) => {
           event.preventDefault();
 
@@ -257,7 +254,7 @@ export function IndicatorChat({
         </div>
 
         {!hasRecommended && turns.length > 0 && !inFlight ? (
-          <p className="mt-4 text-[14px] leading-relaxed text-ink-soft text-pretty">
+          <p className="mt-4 text-[14px] leading-relaxed text-signal-dim text-pretty">
             O Indicador ainda está entendendo o pedido — ele pergunta antes de indicar, de
             propósito. Responda e ele vai ao acervo; a avaliação abre quando houver uma
             indicação para corrigir.

@@ -16,7 +16,7 @@ export default async function Home() {
     return (
       <PageShell
         title="Uma curadoria viva."
-        lede="Ferramenta interna da 2001 Vídeo. Entre para começar uma conversa."
+        lede="Ferramenta interna da 2001 Vídeo. Identifique-se para começar."
       >
         <CuratorPicker requiresPassword={env.APP_CURATION_PASSWORD.length > 0} />
       </PageShell>
@@ -34,7 +34,7 @@ export default async function Home() {
   return (
     <PageShell
       curator={curator}
-      eyebrow="Edição corrente"
+      eyebrow="Estado do acervo"
       title="O acervo hoje"
       lede="Cada conversa avaliada aqui vira o dado que treina o modelo próprio na Fase 2."
     >
@@ -42,19 +42,19 @@ export default async function Home() {
 
       <SessionList sessions={sessions} />
 
-      <dl className="mt-12 grid grid-cols-2 gap-px border border-rule bg-rule sm:grid-cols-4">
-        <Figure label="Filmes" value={films} />
-        <Figure
+      <dl className="mt-14 grid grid-cols-2 gap-px border border-seam bg-seam sm:grid-cols-4">
+        <Readout label="Filmes" value={films} />
+        <Readout
           label="Com curadoria"
           value={curated}
           footnote={films > curated ? `${String(films - curated)} sem estudo` : undefined}
         />
-        <Figure label="Absorvidas" value={absorbed} />
-        <Figure label="Em revisão" value={underReview} accent={underReview > 0} />
+        <Readout label="Absorvidas" value={absorbed} />
+        <Readout label="Em revisão" value={underReview} alert={underReview > 0} />
       </dl>
 
-      <p className="mt-6 text-[15px] leading-relaxed text-ink-soft">
-        <Link href="/conversations" className="text-accent underline underline-offset-4">
+      <p className="mt-6 text-[15px] leading-relaxed text-signal-dim">
+        <Link href="/conversations" className="text-hal hover:underline hover:underline-offset-4">
           Ver as conversas registradas
         </Link>{' '}
         — e baixar o dataset.
@@ -63,29 +63,30 @@ export default async function Home() {
   );
 }
 
-function Figure({
+/** An instrument readout: legend above, figure below, nothing else. */
+function Readout({
   label,
   value,
   footnote,
-  accent = false,
+  alert = false,
 }: {
   label: string;
   value: number;
   footnote?: string | undefined;
-  accent?: boolean;
+  alert?: boolean;
 }) {
   return (
-    <div className="bg-paper-raised px-4 py-5">
+    <div className="bg-panel px-4 py-5">
       <dt className="label-caps">{label}</dt>
       <dd
-        className={`font-display text-[32px] leading-none tracking-tight ${
-          accent ? 'text-accent' : ''
+        className={`mt-2 font-display text-[34px] leading-none font-light tabular-nums ${
+          alert ? 'text-hal' : 'text-signal'
         }`}
       >
         {value}
       </dd>
       {footnote !== undefined ? (
-        <p className="mt-1.5 font-label text-[11px] text-ink-faint">{footnote}</p>
+        <p className="mt-2 font-mono text-[10px] tracking-wider text-signal-faint">{footnote}</p>
       ) : null}
     </div>
   );

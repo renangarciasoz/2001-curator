@@ -27,7 +27,7 @@ export function SignOut() {
     <button
       type="button"
       disabled={leaving}
-      className="label-caps cursor-pointer underline decoration-rule underline-offset-4 transition-colors hover:text-accent disabled:cursor-not-allowed disabled:opacity-50"
+      className="label-caps cursor-pointer transition-colors hover:text-hal disabled:cursor-not-allowed disabled:opacity-40"
       onClick={() => void signOut()}
     >
       {leaving ? 'Saindo…' : 'Sair'}

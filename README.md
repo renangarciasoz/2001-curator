@@ -260,15 +260,31 @@ real archive.
 policy refusal — unlikely in a film product, but a conversation that dies
 mid-turn with no explanation is worse than one served by the previous model.
 
-**The interface is printed matter, not a dashboard.** Tailwind v4, with the
-theme in `app/globals.css` rather than a JS config. The direction is the
-archive's own magazines: warm paper, Instrument Serif for the masthead, Source
-Serif 4 for everything the curators read, Inter in small caps for labels and
-metadata, hairline rules instead of cards, and exactly one accent — ink red.
-Two people read and write long prose here all day, so the reading measure is
-capped near 70 characters and legibility wins wherever it conflicts with
-decoration. The dataset page is the one view that gets a wider column, because
-it is scanned rather than read.
+**The interface is the film.** The store is named after *2001: A Space
+Odyssey*, so the tool is built from the film's visual language rather than from
+a generic dark theme. Tailwind v4, theme in `app/globals.css` rather than a JS
+config:
+
+- **The monolith** — absolute black, exact rectangles, nothing rounded. It is
+  the logo mark, at the 1:4 of the slab's 1:4:9.
+- **The Discovery interiors** — cool white on near-black, flat even light, thin
+  seams between panels instead of cards and drop shadows.
+- **HAL's lens** — one red (`--color-hal`), used as a point of light and almost
+  never as a fill. It marks what needs attention: a disagreement, a failure,
+  the Indicador reaching into the archive.
+- **The instrument readouts** — amber, and small monospaced caps with wide
+  tracking, the way a panel legend is set.
+
+Typography follows the film's own: **Jost** is a Futura revival, and Futura is
+what the title cards and the poster are set in. **Inter** carries body text,
+because a geometric face at reading size for hours is punishing. **IBM Plex
+Mono** is the instrument voice — labels, metadata, identifiers, never prose.
+
+Restraint is the point: 2001 is mostly greyscale with tiny points of red and
+amber, and a screen full of glow would read as pastiche. Two people read and
+write long prose here all day, so the measure is capped near 70 characters and
+legibility wins wherever it conflicts with atmosphere. The dataset page is the
+one view that gets a wider column, because it is scanned rather than read.
 
 **`compose.yaml` / `compose.dev.yaml`, not `docker-compose.yml`.** The spec
 asked for "docker-compose"; the EPCVIP standard requires the Compose Spec's

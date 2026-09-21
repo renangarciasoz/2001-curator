@@ -1,30 +1,32 @@
-import { Instrument_Serif, Inter, Source_Serif_4 } from 'next/font/google';
+import { IBM_Plex_Mono, Inter, Jost } from 'next/font/google';
 
 import './globals.css';
 
 import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
 
-/** The wordmark and page titles: one weight, high contrast, magazine masthead. */
-const displaySerif = Instrument_Serif({
+/**
+ * Display: a Futura revival. The film's title cards and poster are Futura, and
+ * the store took its name from the film.
+ */
+const displayGeometric = Jost({
   subsets: ['latin'],
-  weight: '400',
-  style: ['normal', 'italic'],
-  variable: '--font-instrument-serif',
+  variable: '--font-jost',
   display: 'swap',
 });
 
-/** Everything the curators actually read. Variable weight, built for screens. */
-const proseSerif = Source_Serif_4({
-  subsets: ['latin'],
-  variable: '--font-source-serif',
-  display: 'swap',
-});
-
-/** Labels, metadata and controls — never body copy. */
-const labelSans = Inter({
+/** Body and controls. A geometric face at reading size for hours is punishing. */
+const uiSans = Inter({
   subsets: ['latin'],
   variable: '--font-inter',
+  display: 'swap',
+});
+
+/** The instrument voice: labels, metadata, identifiers. Never prose. */
+const instrumentMono = IBM_Plex_Mono({
+  subsets: ['latin'],
+  weight: ['400', '500'],
+  variable: '--font-plex-mono',
   display: 'swap',
 });
 
@@ -38,7 +40,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html
       lang="pt-BR"
-      className={`${displaySerif.variable} ${proseSerif.variable} ${labelSans.variable}`}
+      className={`${displayGeometric.variable} ${uiSans.variable} ${instrumentMono.variable}`}
     >
       <body className="min-h-dvh">{children}</body>
     </html>

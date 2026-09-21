@@ -12,8 +12,8 @@ import type { CuratorName } from '@/lib/curator.constant';
  *
  * That distinction is not interface comfort — it is what makes every review
  * traceable. Without it the quality gate cannot tell agreement from
- * disagreement from a single reading. Hence two big named choices rather than
- * a dropdown: picking the wrong one corrupts attribution in the dataset.
+ * disagreement from a single reading. Hence two large named targets rather
+ * than a dropdown: picking the wrong one corrupts attribution in the dataset.
  */
 export function CuratorPicker({ requiresPassword }: { requiresPassword: boolean }) {
   const router = useRouter();
@@ -52,16 +52,14 @@ export function CuratorPicker({ requiresPassword }: { requiresPassword: boolean 
       }}
     >
       <fieldset>
-        <legend className="label-caps mb-3">Quem está entrando</legend>
+        <legend className="label-caps mb-4">Identificação</legend>
 
-        <div className="grid grid-cols-2 gap-px border border-rule bg-rule">
+        <div className="grid grid-cols-2 gap-px border border-seam bg-seam">
           {CURATORS.map((name) => (
             <label
               key={name}
-              className={`cursor-pointer px-4 py-5 text-center transition-colors ${
-                curator === name
-                  ? 'bg-accent-soft text-accent'
-                  : 'bg-paper-raised text-ink-soft hover:text-ink'
+              className={`group relative cursor-pointer px-4 py-7 text-center transition-colors ${
+                curator === name ? 'bg-recess' : 'bg-panel hover:bg-recess'
               }`}
             >
               <input
@@ -74,14 +72,26 @@ export function CuratorPicker({ requiresPassword }: { requiresPassword: boolean 
                   setCurator(name);
                 }}
               />
-              <span className="font-display text-[26px] leading-none">{curatorLabel(name)}</span>
+              <span
+                className={`font-display text-[22px] font-light tracking-[0.18em] uppercase transition-colors ${
+                  curator === name ? 'text-signal' : 'text-signal-faint'
+                }`}
+              >
+                {curatorLabel(name)}
+              </span>
+              {curator === name ? (
+                <span
+                  aria-hidden="true"
+                  className="absolute inset-x-0 bottom-0 h-px bg-hal"
+                />
+              ) : null}
             </label>
           ))}
         </div>
       </fieldset>
 
       {requiresPassword ? (
-        <div className="mt-6">
+        <div className="mt-8">
           <label htmlFor="password" className="label-caps mb-2 block">
             Senha de curadoria
           </label>
@@ -90,7 +100,7 @@ export function CuratorPicker({ requiresPassword }: { requiresPassword: boolean 
             type="password"
             value={password}
             autoComplete="current-password"
-            className="field"
+            className="field font-mono tracking-widest"
             onChange={(event) => {
               setPassword(event.target.value);
             }}
@@ -106,7 +116,7 @@ export function CuratorPicker({ requiresPassword }: { requiresPassword: boolean 
 
       <div className="mt-8">
         <button type="submit" disabled={submitting} className="btn btn-primary">
-          {submitting ? 'Entrando…' : 'Entrar'}
+          {submitting ? 'Abrindo…' : 'Entrar'}
         </button>
       </div>
     </form>
