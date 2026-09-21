@@ -2,18 +2,22 @@
 # Development overlay. Publishes host ports because the Next.js app runs outside
 # Compose (`pnpm dev`) and has to reach Postgres and Qdrant.
 # Always invoked explicitly: docker compose -f compose.yaml -f compose.dev.yaml up -d
+#
+# Neither service declares `env_file: .env`. Compose already interpolates
+# ${POSTGRES_USER} and friends from the project `.env` on its own, so the file
+# would add nothing — except every other key in it, handing ANTHROPIC_API_KEY,
+# VOYAGE_API_KEY and TMDB_ACCESS_TOKEN to two containers that have no use for
+# them. Those keys belong to the app process on the host, not to the databases.
 
 services:
   postgres:
     container_name: epcvip-indicador-2001-postgres
     hostname: epcvip-indicador-2001-postgres.local
-    env_file: .env
     ports:
       - ${POSTGRES_PORT:-5432}:5432
 
   qdrant:
     container_name: epcvip-indicador-2001-qdrant
     hostname: epcvip-indicador-2001-qdrant.local
-    env_file: .env
     ports:
       - ${QDRANT_HTTP_PORT:-6333}:6333
