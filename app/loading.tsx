@@ -1,7 +1,7 @@
-export default function Carregando() {
+export default function Loading() {
   return (
     <main>
-      <p className="sutil">Carregando…</p>
+      <p className="muted">Carregando…</p>
     </main>
   );
 }

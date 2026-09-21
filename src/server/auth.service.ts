@@ -4,104 +4,104 @@ import { createHmac, timingSafeEqual } from 'node:crypto';
 
 import { cookies } from 'next/headers';
 
-import { CuradoraNaoAutenticadaError } from '@/lib/app-error.util';
-import { ehCuradora } from '@/lib/curadora.constant';
+import { CuratorNotAuthenticatedError } from '@/lib/app-error.util';
+import { isCurator } from '@/lib/curator.constant';
 
 import { env } from './env.config';
 
-import type { Curadora } from '@/lib/curadora.constant';
+import type { CuratorName } from '@/lib/curator.constant';
 
-const NOME_DO_COOKIE = 'indicador_curadora';
-const DURACAO_EM_SEGUNDOS = 60 * 60 * 24 * 30;
+const COOKIE_NAME = 'indicador_curator';
+const COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 30;
 
 /**
- * Registra a curadora nesta sessão do navegador.
+ * Signs a curator into this browser session.
  *
- * O cookie é assinado com HMAC para que ninguém troque de identidade editando o
- * valor — o que importaria aqui não é sigilo, é a atribuição correta de cada
- * avaliação no dataset.
+ * The cookie is HMAC-signed so nobody can change identity by editing the value.
+ * What matters here is not secrecy but correct attribution of every review in
+ * the dataset.
  *
- * @throws {CuradoraNaoAutenticadaError} quando a senha compartilhada não confere.
+ * @throws {CuratorNotAuthenticatedError} when the shared password does not match.
  */
-export async function entrar(curadora: Curadora, senha: string): Promise<void> {
-  if (env.APP_SENHA_CURADORIA.length > 0 && !senhaConfere(senha)) {
-    throw new CuradoraNaoAutenticadaError('senha de curadoria incorreta');
+export async function signIn(curator: CuratorName, password: string): Promise<void> {
+  if (env.APP_CURATION_PASSWORD.length > 0 && !passwordMatches(password)) {
+    throw new CuratorNotAuthenticatedError('curation password does not match');
   }
 
-  const jarra = await cookies();
+  const jar = await cookies();
 
-  jarra.set(NOME_DO_COOKIE, `${curadora}.${assinar(curadora)}`, {
+  jar.set(COOKIE_NAME, `${curator}.${sign(curator)}`, {
     httpOnly: true,
     sameSite: 'lax',
     secure: process.env['NODE_ENV'] === 'production',
     path: '/',
-    maxAge: DURACAO_EM_SEGUNDOS,
+    maxAge: COOKIE_MAX_AGE_SECONDS,
   });
 }
 
-export async function sair(): Promise<void> {
-  const jarra = await cookies();
+export async function signOut(): Promise<void> {
+  const jar = await cookies();
 
-  jarra.delete(NOME_DO_COOKIE);
+  jar.delete(COOKIE_NAME);
 }
 
-/** A curadora desta sessão, ou `null` se ninguém entrou. */
-export async function curadoraAtual(): Promise<Curadora | null> {
-  const jarra = await cookies();
-  const cru = jarra.get(NOME_DO_COOKIE)?.value;
+/** The curator in this session, or `null` if nobody signed in. */
+export async function currentCurator(): Promise<CuratorName | null> {
+  const jar = await cookies();
+  const raw = jar.get(COOKIE_NAME)?.value;
 
-  if (cru === undefined) {
+  if (raw === undefined) {
     return null;
   }
 
-  const separador = cru.lastIndexOf('.');
+  const separator = raw.lastIndexOf('.');
 
-  if (separador === -1) {
+  if (separator === -1) {
     return null;
   }
 
-  const nome = cru.slice(0, separador);
-  const assinatura = cru.slice(separador + 1);
+  const name = raw.slice(0, separator);
+  const signature = raw.slice(separator + 1);
 
-  if (!ehCuradora(nome) || !assinaturaConfere(nome, assinatura)) {
+  if (!isCurator(name) || !signatureMatches(name, signature)) {
     return null;
   }
 
-  return nome;
+  return name;
 }
 
 /**
- * Igual a `curadoraAtual`, mas para os caminhos que não fazem sentido sem
- * identidade — toda rota que grava dado de curadoria passa por aqui.
+ * Same as `currentCurator`, but for the paths that make no sense without an
+ * identity — every route that writes curation data goes through here.
  *
- * @throws {CuradoraNaoAutenticadaError} quando não há curadora na sessão.
+ * @throws {CuratorNotAuthenticatedError} when there is no curator in the session.
  */
-export async function exigirCuradora(): Promise<Curadora> {
-  const curadora = await curadoraAtual();
+export async function requireCurator(): Promise<CuratorName> {
+  const curator = await currentCurator();
 
-  if (curadora === null) {
-    throw new CuradoraNaoAutenticadaError();
+  if (curator === null) {
+    throw new CuratorNotAuthenticatedError();
   }
 
-  return curadora;
+  return curator;
 }
 
-function assinar(valor: string): string {
-  return createHmac('sha256', env.APP_SESSION_SECRET).update(valor).digest('hex');
+function sign(value: string): string {
+  return createHmac('sha256', env.APP_SESSION_SECRET).update(value).digest('hex');
 }
 
-function assinaturaConfere(valor: string, assinatura: string): boolean {
-  return comparacaoConstante(assinar(valor), assinatura);
+function signatureMatches(value: string, signature: string): boolean {
+  return constantTimeEquals(sign(value), signature);
 }
 
-function senhaConfere(senha: string): boolean {
-  return comparacaoConstante(env.APP_SENHA_CURADORIA, senha);
+function passwordMatches(password: string): boolean {
+  return constantTimeEquals(env.APP_CURATION_PASSWORD, password);
 }
 
-/** Comparação de tempo constante: evita distinguir segredos pelo tempo de resposta. */
-function comparacaoConstante(esperado: string, recebido: string): boolean {
-  const a = Buffer.from(esperado, 'utf8');
-  const b = Buffer.from(recebido, 'utf8');
+/** Constant-time comparison: does not leak secrets through response timing. */
+function constantTimeEquals(expected: string, received: string): boolean {
+  const a = Buffer.from(expected, 'utf8');
+  const b = Buffer.from(received, 'utf8');
 
   if (a.length !== b.length) {
     return false;

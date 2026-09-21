@@ -1,15 +1,15 @@
 /**
- * Semeia uma camada curatorial de DEMONSTRAÇÃO sobre o acervo já ingerido.
+ * Seeds a DEMONSTRATION curatorial layer over the already-ingested archive.
  *
- *   pnpm db:seed          # aplica
- *   pnpm db:seed -- --limpar  # remove tudo o que este script criou
+ *   pnpm db:seed             # apply
+ *   pnpm db:seed -- --clear  # remove everything this script created
  *
- * Nada aqui é curadoria da 2001. Tudo entra marcado com fonte_curatorial = DEMO
- * e curador = DEMO; o exportador do dataset ignora, e uma CHECK constraint
- * impede que este dado se apresente como avaliado por Sonia ou Mirella.
+ * None of this is 2001 curation. Everything lands with curatorial_source = DEMO
+ * and curator = DEMO; the dataset exporter ignores it, and a CHECK constraint
+ * prevents it from presenting itself as reviewed by Sonia or Mirella.
  *
- * Existe para que a ferramenta tenha o que mostrar no primeiro dia — busca
- * semântica sobre camada curatorial, pontes com porquê, jornada, lista editorial.
+ * It exists so the tool has something to show on day one — semantic search over
+ * a curatorial layer, bridges with reasons, a journey, an editorial list.
  */
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
@@ -17,268 +17,269 @@ import { parseArgs } from 'node:util';
 
 import { z } from 'zod';
 
-import { descreverErro } from '../src/lib/app-error.util';
-import { CATEGORIAS_DO_ACERVO } from '../src/lib/taxonomia.constant';
+import { describeError } from '../src/lib/app-error.util';
+import { ARCHIVE_CATEGORIES } from '../src/lib/taxonomy.constant';
 import { db } from '../src/server/db.service';
 
-const CAMINHO = path.join('data', 'curadoria-demo.json');
+const SEED_PATH = path.join('data', 'demo-curation.json');
 
 const SeedSchema = z.object({
-  filmes: z.array(
+  films: z.array(
     z.object({
-      titulo: z.string(),
-      tomEmocional: z.string(),
-      oQueProvoca: z.string(),
-      registroComercial: z.enum(['COMERCIAL', 'CABECA', 'AMBOS']),
-      categoriaAcervo: z.enum(CATEGORIAS_DO_ACERVO),
-      contextoHistorico: z.string(),
-      notasCuratoriais: z.string(),
+      title: z.string(),
+      emotionalTone: z.string(),
+      whatItProvokes: z.string(),
+      commercialRegister: z.enum(['COMMERCIAL', 'ARTHOUSE', 'BOTH']),
+      archiveCategory: z.enum(ARCHIVE_CATEGORIES),
+      historicalContext: z.string(),
+      curatorialNotes: z.string(),
     }),
   ),
-  conexoes: z.array(
+  connections: z.array(
     z.object({
-      origem: z.string(),
-      destino: z.string(),
-      tipo: z.enum([
-        'PORTA_DE_ENTRADA',
-        'SE_GOSTOU_DE',
-        'ANTES_DE_VER',
-        'LANCAMENTO_PARA_ACERVO',
-        'ACERVO_PARA_LANCAMENTO',
-        'OUTRO',
+      source: z.string(),
+      target: z.string(),
+      type: z.enum([
+        'ENTRY_POINT',
+        'IF_YOU_LIKED',
+        'BEFORE_WATCHING',
+        'RELEASE_TO_ARCHIVE',
+        'ARCHIVE_TO_RELEASE',
+        'OTHER',
       ]),
-      pontePor: z.string(),
-      porque: z.string().min(1),
+      bridgedBy: z.string(),
+      why: z.string().min(1),
     }),
   ),
-  jornadas: z.array(
+  journeys: z.array(
     z.object({
-      titulo: z.string(),
-      objetivo: z.string(),
-      filmes: z.array(z.object({ titulo: z.string(), notaDoPorque: z.string().min(1) })),
+      title: z.string(),
+      objective: z.string(),
+      films: z.array(z.object({ title: z.string(), whyNote: z.string().min(1) })),
     }),
   ),
-  listas: z.array(
+  editorialLists: z.array(
     z.object({
-      titulo: z.string(),
-      periodo: z.string(),
-      tipo: z.enum(['TOP_DO_MES', 'TEMATICO', 'EVENTO', 'OMO_HISTORICA']),
-      filmes: z.array(z.object({ titulo: z.string(), linhaDeCuradoria: z.string().min(1) })),
+      title: z.string(),
+      period: z.string(),
+      type: z.enum(['MONTHLY_TOP', 'THEMATIC', 'EVENT', 'HISTORIC_OMO']),
+      films: z.array(z.object({ title: z.string(), curationLine: z.string().min(1) })),
     }),
   ),
 });
 
 async function main(): Promise<void> {
-  const { values } = parseArgs({ options: { limpar: { type: 'boolean', default: false } } });
+  const { values } = parseArgs({ options: { clear: { type: 'boolean', default: false } } });
 
-  if (values.limpar ?? false) {
-    await limpar();
+  if (values.clear ?? false) {
+    await clear();
     return;
   }
 
-  const seed = SeedSchema.parse(JSON.parse(await readFile(path.resolve(CAMINHO), 'utf8')));
-  const idPorTitulo = await mapearFilmes();
+  const seed = SeedSchema.parse(JSON.parse(await readFile(path.resolve(SEED_PATH), 'utf8')));
+  const idByTitle = await mapFilms();
 
-  if (idPorTitulo.size === 0) {
-    console.error('Acervo vazio. Rode `pnpm ingerir:tmdb` antes de semear a demonstração.');
+  if (idByTitle.size === 0) {
+    console.error('Archive is empty. Run `pnpm ingest:tmdb` before seeding the demo.');
     process.exitCode = 1;
     return;
   }
 
-  let curados = 0;
+  let curated = 0;
 
-  for (const filme of seed.filmes) {
-    const filmeId = idPorTitulo.get(filme.titulo);
+  for (const film of seed.films) {
+    const filmId = idByTitle.get(film.title);
 
-    if (filmeId === undefined) {
-      console.warn(`"${filme.titulo}" não está no acervo — pulando.`);
+    if (filmId === undefined) {
+      console.warn(`"${film.title}" is not in the archive — skipping.`);
       continue;
     }
 
-    await db.filme.update({
-      where: { id: filmeId },
+    await db.film.update({
+      where: { id: filmId },
       data: {
-        tomEmocional: filme.tomEmocional,
-        oQueProvoca: filme.oQueProvoca,
-        registroComercial: filme.registroComercial,
-        categoriaAcervo: filme.categoriaAcervo,
-        contextoHistorico: filme.contextoHistorico,
-        notasCuratoriais: filme.notasCuratoriais,
-        fonteCuratorial: 'DEMO',
-        avaliadoPor: [],
-        // A camada curatorial mudou: o vetor indexado ficou velho.
-        indexadoEm: null,
+        emotionalTone: film.emotionalTone,
+        whatItProvokes: film.whatItProvokes,
+        commercialRegister: film.commercialRegister,
+        archiveCategory: film.archiveCategory,
+        historicalContext: film.historicalContext,
+        curatorialNotes: film.curatorialNotes,
+        curatorialSource: 'DEMO',
+        reviewedBy: [],
+        // The curatorial layer changed: the indexed vector is stale.
+        indexedAt: null,
       },
     });
 
-    curados += 1;
+    curated += 1;
   }
 
-  const conexoes = await semearConexoes(seed.conexoes, idPorTitulo);
-  const jornadas = await semearJornadas(seed.jornadas, idPorTitulo);
-  const listas = await semearListas(seed.listas, idPorTitulo);
+  const connections = await seedConnections(seed.connections, idByTitle);
+  const journeys = await seedJourneys(seed.journeys, idByTitle);
+  const lists = await seedEditorialLists(seed.editorialLists, idByTitle);
 
   console.log(
-    `Demonstração semeada: ${String(curados)} filmes com camada curatorial, ` +
-      `${String(conexoes)} conexões, ${String(jornadas)} jornadas, ${String(listas)} listas.\n` +
-      'Tudo marcado como DEMO e fora do dataset exportado.\n' +
-      'Rode `pnpm indexar:embeddings` para a busca enxergar a camada nova.',
+    `Demo seeded: ${String(curated)} films with a curatorial layer, ` +
+      `${String(connections)} connections, ${String(journeys)} journeys, ` +
+      `${String(lists)} editorial lists.\n` +
+      'All marked DEMO and excluded from the exported dataset.\n' +
+      'Run `pnpm index:embeddings` so search picks up the new layer.',
   );
 }
 
-async function mapearFilmes(): Promise<Map<string, string>> {
-  const filmes = await db.filme.findMany({ select: { id: true, titulo: true } });
+async function mapFilms(): Promise<Map<string, string>> {
+  const films = await db.film.findMany({ select: { id: true, title: true } });
 
-  return new Map(filmes.map((filme) => [filme.titulo, filme.id]));
+  return new Map(films.map((film) => [film.title, film.id]));
 }
 
-async function semearConexoes(
-  conexoes: z.infer<typeof SeedSchema>['conexoes'],
-  idPorTitulo: ReadonlyMap<string, string>,
+async function seedConnections(
+  connections: z.infer<typeof SeedSchema>['connections'],
+  idByTitle: ReadonlyMap<string, string>,
 ): Promise<number> {
-  let criadas = 0;
+  let created = 0;
 
-  for (const conexao of conexoes) {
-    const origemId = idPorTitulo.get(conexao.origem);
-    const destinoId = idPorTitulo.get(conexao.destino);
+  for (const connection of connections) {
+    const sourceFilmId = idByTitle.get(connection.source);
+    const targetFilmId = idByTitle.get(connection.target);
 
-    if (origemId === undefined || destinoId === undefined) {
+    if (sourceFilmId === undefined || targetFilmId === undefined) {
       continue;
     }
 
-    await db.conexao.upsert({
+    await db.connection.upsert({
       where: {
-        filmeOrigemId_filmeDestinoId_tipo: {
-          filmeOrigemId: origemId,
-          filmeDestinoId: destinoId,
-          tipo: conexao.tipo,
+        sourceFilmId_targetFilmId_type: {
+          sourceFilmId,
+          targetFilmId,
+          type: connection.type,
         },
       },
       create: {
-        filmeOrigemId: origemId,
-        filmeDestinoId: destinoId,
-        tipo: conexao.tipo,
-        pontePor: conexao.pontePor,
-        porque: conexao.porque,
-        curador: 'DEMO',
+        sourceFilmId,
+        targetFilmId,
+        type: connection.type,
+        bridgedBy: connection.bridgedBy,
+        why: connection.why,
+        curator: 'DEMO',
       },
-      update: { pontePor: conexao.pontePor, porque: conexao.porque },
+      update: { bridgedBy: connection.bridgedBy, why: connection.why },
     });
 
-    criadas += 1;
+    created += 1;
   }
 
-  return criadas;
+  return created;
 }
 
-async function semearJornadas(
-  jornadas: z.infer<typeof SeedSchema>['jornadas'],
-  idPorTitulo: ReadonlyMap<string, string>,
+async function seedJourneys(
+  journeys: z.infer<typeof SeedSchema>['journeys'],
+  idByTitle: ReadonlyMap<string, string>,
 ): Promise<number> {
-  let criadas = 0;
+  let created = 0;
 
-  for (const jornada of jornadas) {
-    const existente = await db.jornada.findFirst({
-      where: { titulo: jornada.titulo, curador: 'DEMO' },
+  for (const journey of journeys) {
+    const existing = await db.journey.findFirst({
+      where: { title: journey.title, curator: 'DEMO' },
       select: { id: true },
     });
 
-    if (existente !== null) {
+    if (existing !== null) {
       continue;
     }
 
-    const itens = jornada.filmes.flatMap((item, ordem) => {
-      const filmeId = idPorTitulo.get(item.titulo);
+    const items = journey.films.flatMap((item, position) => {
+      const filmId = idByTitle.get(item.title);
 
-      return filmeId === undefined ? [] : [{ filmeId, ordem, notaDoPorque: item.notaDoPorque }];
+      return filmId === undefined ? [] : [{ filmId, position, whyNote: item.whyNote }];
     });
 
-    await db.jornada.create({
+    await db.journey.create({
       data: {
-        titulo: jornada.titulo,
-        objetivo: jornada.objetivo,
-        curador: 'DEMO',
-        filmes: { create: itens },
+        title: journey.title,
+        objective: journey.objective,
+        curator: 'DEMO',
+        films: { create: items },
       },
     });
 
-    criadas += 1;
+    created += 1;
   }
 
-  return criadas;
+  return created;
 }
 
-async function semearListas(
-  listas: z.infer<typeof SeedSchema>['listas'],
-  idPorTitulo: ReadonlyMap<string, string>,
+async function seedEditorialLists(
+  lists: z.infer<typeof SeedSchema>['editorialLists'],
+  idByTitle: ReadonlyMap<string, string>,
 ): Promise<number> {
-  let criadas = 0;
+  let created = 0;
 
-  for (const lista of listas) {
-    const existente = await db.listaEditorial.findFirst({
-      where: { titulo: lista.titulo, curador: 'DEMO' },
+  for (const list of lists) {
+    const existing = await db.editorialList.findFirst({
+      where: { title: list.title, curator: 'DEMO' },
       select: { id: true },
     });
 
-    if (existente !== null) {
+    if (existing !== null) {
       continue;
     }
 
-    const itens = lista.filmes.flatMap((item, ordem) => {
-      const filmeId = idPorTitulo.get(item.titulo);
+    const items = list.films.flatMap((item, position) => {
+      const filmId = idByTitle.get(item.title);
 
-      return filmeId === undefined
+      return filmId === undefined
         ? []
-        : [{ filmeId, ordem, linhaDeCuradoria: item.linhaDeCuradoria }];
+        : [{ filmId, position, curationLine: item.curationLine }];
     });
 
-    await db.listaEditorial.create({
+    await db.editorialList.create({
       data: {
-        titulo: lista.titulo,
-        periodo: lista.periodo,
-        tipo: lista.tipo,
-        curador: 'DEMO',
-        publicadaEm: new Date(),
-        filmes: { create: itens },
+        title: list.title,
+        period: list.period,
+        type: list.type,
+        curator: 'DEMO',
+        publishedAt: new Date(),
+        films: { create: items },
       },
     });
 
-    criadas += 1;
+    created += 1;
   }
 
-  return criadas;
+  return created;
 }
 
-/** Remove tudo o que o seed criou, sem tocar em curadoria real. */
-async function limpar(): Promise<void> {
-  const { count: conexoes } = await db.conexao.deleteMany({ where: { curador: 'DEMO' } });
-  const { count: jornadas } = await db.jornada.deleteMany({ where: { curador: 'DEMO' } });
-  const { count: listas } = await db.listaEditorial.deleteMany({ where: { curador: 'DEMO' } });
+/** Removes everything the seed created, without touching real curation. */
+async function clear(): Promise<void> {
+  const { count: connections } = await db.connection.deleteMany({ where: { curator: 'DEMO' } });
+  const { count: journeys } = await db.journey.deleteMany({ where: { curator: 'DEMO' } });
+  const { count: lists } = await db.editorialList.deleteMany({ where: { curator: 'DEMO' } });
 
-  const { count: filmes } = await db.filme.updateMany({
-    where: { fonteCuratorial: 'DEMO' },
+  const { count: films } = await db.film.updateMany({
+    where: { curatorialSource: 'DEMO' },
     data: {
-      tomEmocional: null,
-      oQueProvoca: null,
-      registroComercial: null,
-      categoriaAcervo: null,
-      contextoHistorico: null,
-      notasCuratoriais: null,
-      fonteCuratorial: null,
-      indexadoEm: null,
+      emotionalTone: null,
+      whatItProvokes: null,
+      commercialRegister: null,
+      archiveCategory: null,
+      historicalContext: null,
+      curatorialNotes: null,
+      curatorialSource: null,
+      indexedAt: null,
     },
   });
 
   console.log(
-    `Demonstração removida: ${String(filmes)} filmes limpos, ${String(conexoes)} conexões, ` +
-      `${String(jornadas)} jornadas, ${String(listas)} listas.`,
+    `Demo removed: ${String(films)} films cleared, ${String(connections)} connections, ` +
+      `${String(journeys)} journeys, ${String(lists)} editorial lists.`,
   );
 }
 
 try {
   await main();
 } catch (e) {
-  console.error(`Seed falhou: ${descreverErro(e)}`);
+  console.error(`Seed failed: ${describeError(e)}`);
   process.exitCode = 1;
 } finally {
   await db.$disconnect();

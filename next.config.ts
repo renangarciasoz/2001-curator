@@ -3,8 +3,8 @@ import type { NextConfig } from 'next';
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
-  // Ferramenta interna: a única origem remota de imagem é o CDN de pôsteres do TMDB,
-  // usado apenas como consulta factual (nunca material de treino — ver README § dois baldes).
+  // Internal tool: the only remote image origin is the TMDB poster CDN, used as a
+  // factual lookup only (never training material — see README § The two buckets).
   images: {
     remotePatterns: [
       {

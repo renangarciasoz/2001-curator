@@ -2,19 +2,19 @@ import 'server-only';
 
 import { z } from 'zod';
 
-import { ConfiguracaoInvalidaError } from '@/lib/app-error.util';
+import { InvalidConfigurationError } from '@/lib/app-error.util';
 
 /**
- * Contrato de configuração. Nenhum segredo tem valor padrão embutido: chaves
- * ausentes viram string vazia e cada serviço decide se pode operar sem ela
- * (embeddings caem no fallback local; o chat, não).
+ * Configuration contract. No secret carries a built-in default: missing keys
+ * become empty strings and each service decides whether it can run without one
+ * (embeddings fall back to the local provider; the chat does not).
  */
 const EnvSchema = z.object({
   DATABASE_URL: z.string().min(1),
 
   QDRANT_URL: z.url(),
   QDRANT_API_KEY: z.string().default(''),
-  QDRANT_COLLECTION: z.string().min(1).default('filmes'),
+  QDRANT_COLLECTION: z.string().min(1).default('films'),
 
   ANTHROPIC_API_KEY: z.string().default(''),
   ANTHROPIC_MODEL: z.string().min(1).default('claude-opus-5'),
@@ -28,30 +28,30 @@ const EnvSchema = z.object({
   TMDB_ACCESS_TOKEN: z.string().default(''),
   TMDB_LANGUAGE: z.string().min(1).default('pt-BR'),
 
-  APP_SENHA_CURADORIA: z.string().default(''),
+  APP_CURATION_PASSWORD: z.string().default(''),
   APP_SESSION_SECRET: z.string().min(16),
 });
 
 export type Env = z.infer<typeof EnvSchema>;
 
 /**
- * Lê e valida o ambiente. Falha no arranque — nunca cai num valor de
- * desenvolvimento embutido.
+ * Reads and validates the environment. Fails at startup — never falls back to a
+ * baked-in development value.
  *
- * @throws {ConfiguracaoInvalidaError} quando uma variável obrigatória falta.
+ * @throws {InvalidConfigurationError} when a required variable is missing.
  */
-function carregarEnv(): Env {
-  const resultado = EnvSchema.safeParse(process.env);
+function loadEnv(): Env {
+  const result = EnvSchema.safeParse(process.env);
 
-  if (!resultado.success) {
-    const detalhe = resultado.error.issues
+  if (!result.success) {
+    const detail = result.error.issues
       .map((issue) => `${issue.path.join('.')}: ${issue.message}`)
       .join('; ');
 
-    throw new ConfiguracaoInvalidaError(`${detalhe}. Confira o .env.example.`);
+    throw new InvalidConfigurationError(`${detail}. See .env.example.`);
   }
 
-  return resultado.data;
+  return result.data;
 }
 
-export const env: Env = carregarEnv();
+export const env: Env = loadEnv();

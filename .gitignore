@@ -1,24 +1,24 @@
-# dependências
+# dependencies
 /node_modules/
 
-# build do Next.js
+# Next.js build output
 /.next/
 /out/
 /dist/
 next-env.d.ts
 *.tsbuildinfo
 
-# segredos — nunca versionados. O contrato de chaves vive em .env.example
+# secrets — never versioned. The key contract lives in .env.example
 .env
 .env.*
 !.env.example
 
-# artefatos de exportação do dataset
+# dataset export artifacts
 /exports/
 
-# SO / editor
+# OS / editor
 .DS_Store
 *.log
 
-# preferências locais do agente (settings.json compartilhado seria versionado)
+# local agent preferences (a shared settings.json would be versioned)
 /.claude/settings.local.json

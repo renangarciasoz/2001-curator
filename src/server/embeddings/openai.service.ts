@@ -2,84 +2,84 @@ import 'server-only';
 
 import { z } from 'zod';
 
-import { ProviderIndisponivelError } from '@/lib/app-error.util';
+import { ProviderUnavailableError } from '@/lib/app-error.util';
 
 import { env } from '../env.config';
 
-import { ordenarPorIndice } from './ordenar-por-indice.util';
+import { orderByIndex } from './order-by-index.util';
 
-import type { ProviderDeEmbeddings } from './embeddings.service';
+import type { EmbeddingsProvider } from './embeddings.service';
 
 const OPENAI_URL = 'https://api.openai.com/v1/embeddings';
 
-const DIMENSOES_POR_MODELO: Readonly<Record<string, number>> = {
+const DIMENSIONS_BY_MODEL: Readonly<Record<string, number>> = {
   'text-embedding-3-small': 1536,
   'text-embedding-3-large': 3072,
 };
 
-const RespostaSchema = z.object({
+const ResponseSchema = z.object({
   data: z.array(z.object({ index: z.number().int(), embedding: z.array(z.number()) })),
 });
 
-/** Alternativa à Voyage. Mesma interface: trocar é mudar uma variável de ambiente. */
-export function criarProviderOpenai(): ProviderDeEmbeddings {
-  const modelo = env.OPENAI_EMBEDDINGS_MODEL;
-  const dimensoes = DIMENSOES_POR_MODELO[modelo];
+/** Alternative to Voyage. Same interface: switching is one environment variable. */
+export function createOpenaiProvider(): EmbeddingsProvider {
+  const model = env.OPENAI_EMBEDDINGS_MODEL;
+  const dimensions = DIMENSIONS_BY_MODEL[model];
 
-  if (dimensoes === undefined) {
-    throw new ProviderIndisponivelError(
+  if (dimensions === undefined) {
+    throw new ProviderUnavailableError(
       'openai',
-      `dimensões desconhecidas para o modelo "${modelo}". ` +
-        `Adicione-o a DIMENSOES_POR_MODELO em openai.service.ts.`,
+      `unknown dimensions for model "${model}". ` +
+        `Add it to DIMENSIONS_BY_MODEL in openai.service.ts.`,
     );
   }
 
   return {
-    nome: 'openai',
-    modelo,
-    dimensoes,
-    gerar: (textos, _tipo, signal) => gerar(modelo, textos, signal),
+    name: 'openai',
+    model,
+    dimensions,
+    generate: (texts, _kind, signal) => generate(model, texts, signal),
   };
 }
 
-async function gerar(
-  modelo: string,
-  textos: readonly string[],
+async function generate(
+  model: string,
+  texts: readonly string[],
   signal?: AbortSignal,
 ): Promise<readonly (readonly number[])[]> {
   if (env.OPENAI_API_KEY.length === 0) {
-    throw new ProviderIndisponivelError(
+    throw new ProviderUnavailableError(
       'openai',
-      'OPENAI_API_KEY não configurado. Use EMBEDDINGS_PROVIDER=local para rodar sem chave.',
+      'OPENAI_API_KEY is not configured. Use EMBEDDINGS_PROVIDER=local to run without a key.',
     );
   }
 
-  let resposta: Response;
+  let response: Response;
 
   try {
-    resposta = await fetch(OPENAI_URL, {
+    response = await fetch(OPENAI_URL, {
       method: 'POST',
       cache: 'no-store',
       headers: {
         Authorization: `Bearer ${env.OPENAI_API_KEY}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ model: modelo, input: textos }),
+      body: JSON.stringify({ model, input: texts }),
       signal: signal ?? null,
     });
   } catch (e) {
-    throw new ProviderIndisponivelError('openai', 'falha de rede', { cause: e });
+    throw new ProviderUnavailableError('openai', 'network failure', { cause: e });
   }
 
-  if (!resposta.ok) {
-    throw new ProviderIndisponivelError('openai', `HTTP ${String(resposta.status)}`);
+  if (!response.ok) {
+    throw new ProviderUnavailableError('openai', `HTTP ${String(response.status)}`);
   }
 
-  const resultado = RespostaSchema.safeParse(await resposta.json());
+  const result = ResponseSchema.safeParse(await response.json());
 
-  if (!resultado.success) {
-    throw new ProviderIndisponivelError('openai', 'resposta em formato inesperado');
+  if (!result.success) {
+    throw new ProviderUnavailableError('openai', 'unexpected response shape');
   }
 
-  return ordenarPorIndice(resultado.data.data, textos.length, 'openai');
+  return orderByIndex(result.data.data, texts.length, 'openai');
 }

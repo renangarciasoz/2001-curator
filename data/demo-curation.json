@@ -1,0 +1,155 @@
+{
+  "_readme": "DEMONSTRATION DATA — this is not 2001 curation. It exists so the tool has something to show before Sonia and Mirella start the real work. Everything here enters the database with curatorial_source = DEMO and curator = DEMO, is never exported to the Phase 2 dataset, and a CHECK constraint prevents it from posing as real curation. When real curation begins, delete these rows from the database rather than editing them. Field values stay in Portuguese: this is curatorial content, in the language the product speaks.",
+  "films": [
+    {
+      "title": "2001: Uma Odisseia no Espaço",
+      "emotionalTone": "desafia",
+      "whatItProvokes": "Tira o chão da escala humana. Quem entra procurando enredo sai irritado; quem entra disposto a ficar pequeno sai mudado.",
+      "commercialRegister": "ARTHOUSE",
+      "archiveCategory": "CURATION",
+      "historicalContext": "Redefiniu o que ficção científica podia ser: menos aventura, mais metafísica. Quase todo cinema espacial depois dele conversa com ele.",
+      "curatorialNotes": "Não é porta de entrada. Indicar para quem já aguenta um filme que não explica. Se a pessoa nunca viu Kubrick, comece por outro."
+    },
+    {
+      "title": "Os Sete Samurais",
+      "emotionalTone": "conforta",
+      "whatItProvokes": "Dá a sensação rara de que esforço coletivo vale a pena, mesmo quando custa caro.",
+      "commercialRegister": "BOTH",
+      "archiveCategory": "CURATION",
+      "historicalContext": "O molde da narrativa de grupo reunido para uma missão. Hollywood refez literalmente e continua refazendo em forma.",
+      "curatorialNotes": "Porta de entrada perfeita para Kurosawa e para cinema japonês em geral. As três horas passam: é filme de aventura antes de ser clássico."
+    },
+    {
+      "title": "Rashomon",
+      "emotionalTone": "desafia",
+      "whatItProvokes": "Desmonta a confiança do espectador na própria capacidade de saber o que aconteceu.",
+      "commercialRegister": "ARTHOUSE",
+      "archiveCategory": "CURATION",
+      "historicalContext": "Abriu o cinema japonês para o Ocidente em Veneza, 1951, e deu nome a um efeito que hoje se usa fora do cinema.",
+      "curatorialNotes": "Curto e direto. Bom segundo Kurosawa, depois dos Sete Samurais — a pessoa já confia no diretor quando ele começa a desestabilizá-la."
+    },
+    {
+      "title": "Era uma Vez em Tóquio",
+      "emotionalTone": "destrói",
+      "whatItProvokes": "Faz a pessoa ligar para os pais. Não há catarse: a dor é a de reconhecer algo que já estava ali.",
+      "commercialRegister": "ARTHOUSE",
+      "archiveCategory": "CURATION",
+      "historicalContext": "Ozu filma na altura de quem está sentado no tatame e recusa todo movimento dramático. A contenção é a forma.",
+      "curatorialNotes": "Respeitar o tempo de maturação. Não indicar para alguém em luto recente, nem para quem está procurando distração."
+    },
+    {
+      "title": "Ladrões de Bicicleta",
+      "emotionalTone": "destrói",
+      "whatItProvokes": "Mostra a humilhação de perder a dignidade diante do próprio filho, sem nenhuma proteção estética.",
+      "commercialRegister": "ARTHOUSE",
+      "archiveCategory": "CURATION",
+      "historicalContext": "Neorrealismo italiano em estado puro: rua, atores não profissionais, o pós-guerra como personagem.",
+      "curatorialNotes": "Porta de entrada do neorrealismo porque é simples de acompanhar. O golpe vem nos últimos dez minutos."
+    },
+    {
+      "title": "Amor à Flor da Pele",
+      "emotionalTone": "conforta",
+      "whatItProvokes": "Transforma contenção em desejo. Fica na memória como um clima, não como uma história.",
+      "commercialRegister": "BOTH",
+      "archiveCategory": "CURATION",
+      "historicalContext": "Wong Kar-wai leva o melodrama a um lugar onde quase nada acontece e tudo é sentido.",
+      "curatorialNotes": "Funciona para quem diz que não gosta de filme lento — o que prende aqui é sensorial, não narrativo."
+    },
+    {
+      "title": "Central do Brasil",
+      "emotionalTone": "conforta",
+      "whatItProvokes": "Devolve alguma fé em vínculo, sem fingir que o país é gentil.",
+      "commercialRegister": "BOTH",
+      "archiveCategory": "CURATION",
+      "historicalContext": "Marco da retomada do cinema brasileiro nos anos 1990 e da presença do Brasil nos circuitos internacionais.",
+      "curatorialNotes": "Ótima porta de entrada para cinema brasileiro com quem só viu comédia nacional. Fernanda Montenegro convence qualquer um."
+    },
+    {
+      "title": "De Volta para o Futuro",
+      "emotionalTone": "conforta",
+      "whatItProvokes": "Prazer de relojoaria: tudo o que é plantado volta. Sai-se mais leve do que entrou.",
+      "commercialRegister": "COMMERCIAL",
+      "archiveCategory": "CURATION",
+      "historicalContext": "Roteiro clássico de estrutura, estudado até hoje. Cinema comercial no seu melhor acabamento.",
+      "curatorialNotes": "Todo filme é filme. Esta é a indicação certa para quem chegou cansado e não quer ser desafiado hoje."
+    }
+  ],
+  "connections": [
+    {
+      "source": "Os Sete Samurais",
+      "target": "Rashomon",
+      "type": "IF_YOU_LIKED",
+      "bridgedBy": "direção",
+      "why": "Depois de três horas confiando em Kurosawa como contador de histórias, a pessoa aceita que ele tire a história do lugar."
+    },
+    {
+      "source": "Os Sete Samurais",
+      "target": "2001: Uma Odisseia no Espaço",
+      "type": "BEFORE_WATCHING",
+      "bridgedBy": "tema",
+      "why": "Quem aguentou a duração e a paciência dos Sete Samurais já tem o fôlego que 2001 exige. A ordem inversa costuma queimar o Kubrick."
+    },
+    {
+      "source": "Central do Brasil",
+      "target": "Ladrões de Bicicleta",
+      "type": "IF_YOU_LIKED",
+      "bridgedBy": "tema",
+      "why": "É o mesmo par adulto e criança atravessando um país que não ajuda. Uma leva ao outro sem precisar de aula de história do cinema."
+    },
+    {
+      "source": "De Volta para o Futuro",
+      "target": "Os Sete Samurais",
+      "type": "ENTRY_POINT",
+      "bridgedBy": "gênero",
+      "why": "Quem gosta de aventura bem construída já gosta do que os Sete Samurais fazem — só não sabe ainda que isso tem legenda."
+    },
+    {
+      "source": "Amor à Flor da Pele",
+      "target": "Era uma Vez em Tóquio",
+      "type": "IF_YOU_LIKED",
+      "bridgedBy": "tema",
+      "why": "Os dois são feitos do que não é dito. Quem se entregou ao silêncio de um aguenta o do outro."
+    }
+  ],
+  "journeys": [
+    {
+      "title": "Começando Kurosawa",
+      "objective": "Formar um espectador que ainda associa cinema japonês a dificuldade, e sai entendendo que começou pela aventura.",
+      "films": [
+        {
+          "title": "Os Sete Samurais",
+          "whyNote": "Entrada pela aventura: prende antes de exigir qualquer coisa."
+        },
+        {
+          "title": "Rashomon",
+          "whyNote": "Segundo passo: mesmo diretor, agora desestabilizando a narrativa."
+        },
+        {
+          "title": "Era uma Vez em Tóquio",
+          "whyNote": "Sai de Kurosawa e mostra o outro Japão, o de Ozu, onde nada acontece e tudo dói."
+        }
+      ]
+    }
+  ],
+  "editorialLists": [
+    {
+      "title": "Portas de entrada",
+      "period": "2026-09",
+      "type": "THEMATIC",
+      "films": [
+        {
+          "title": "Os Sete Samurais",
+          "curationLine": "A aventura que faz alguém aceitar legenda pela primeira vez."
+        },
+        {
+          "title": "Central do Brasil",
+          "curationLine": "O Brasil que convence quem só viu comédia nacional."
+        },
+        {
+          "title": "Ladrões de Bicicleta",
+          "curationLine": "Neorrealismo sem barreira de entrada: simples até o soco final."
+        }
+      ]
+    }
+  ]
+}

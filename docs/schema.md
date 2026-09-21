@@ -1,170 +1,173 @@
-# O modelo de dados
+# The data model
 
-Fonte da verdade: [`prisma/schema.prisma`](../prisma/schema.prisma). Este
-documento explica a intenção por trás de cada entidade — o que o schema não
-consegue dizer sozinho.
+Source of truth: [`prisma/schema.prisma`](../prisma/schema.prisma). This
+document explains the intent behind each entity — what the schema cannot say on
+its own.
 
-Convenções que valem para todas as tabelas: colunas em `snake_case`, atributos
-na ordem PK → FKs → identificadores secundários → domínio → derivados → status →
-flags → timestamps, e todo timestamp em `TIMESTAMPTZ(6)`.
+Conventions that hold across every table: `snake_case` columns, attributes in
+the order PK → FKs → secondary identifiers → domain → derived → statuses →
+flags → timestamps, and every timestamp as `TIMESTAMPTZ(6)`.
 
 ---
 
-## Acervo
+## Archive
 
-### `filme`
+### `film`
 
-Uma linha por filme, com **dois blocos de colunas que não se misturam**.
+One row per film, with **two blocks of columns that do not mix**.
 
-**Camada factual** (balde de terceiros — consulta, nunca treino):
-`titulo`, `titulo_original`, `ano`, `diretor`, `pais`, `sinopse_factual`,
-`poster_path`, e `fonte_factual` (`TMDB` | `FIXTURE_DEV`).
+**Factual layer** (third-party bucket — lookup, never training):
+`title`, `original_title`, `year`, `director`, `country`, `factual_synopsis`,
+`poster_path`, and `factual_source` (`TMDB` | `DEV_FIXTURE`).
 
-**Camada curatorial 2001** (o diferencial — material treinável):
+**2001 curatorial layer** (the differentiator — trainable material):
 
-| Coluna | O que carrega |
+| Column | What it carries |
 |---|---|
-| `tom_emocional` | `conforta`, `desafia`, `destrói`, … — texto livre de propósito: o vocabulário é das curadoras, não do schema |
-| `o_que_provoca` | O que o filme faz com o espectador |
-| `registro_comercial` | `COMERCIAL` \| `CABECA` \| `AMBOS` — descrição, não julgamento. Todo filme é filme |
-| `notas_curatoriais` | O estudo de meses. Texto livre |
-| `contexto_historico` | Por que importa na história do cinema |
-| `categoria_acervo` | Etiqueta da taxonomia (abaixo) |
-| `avaliado_por` | Lista: `SONIA`, `MIRELLA`, `AMBAS` |
-| `fonte_curatorial` | `CURADORIA_2001` \| `DEMO` |
+| `emotional_tone` | `conforta`, `desafia`, `destrói`, … — free text on purpose: the vocabulary belongs to the curators, not to the schema |
+| `what_it_provokes` | What the film does to the viewer |
+| `commercial_register` | `COMMERCIAL` \| `ARTHOUSE` \| `BOTH` — description, not judgement. Every film is a film |
+| `curatorial_notes` | The months-long study. Free text |
+| `historical_context` | Why it matters in the history of cinema |
+| `archive_category` | Taxonomy label (below) |
+| `reviewed_by` | List: `SONIA`, `MIRELLA`, `BOTH` |
+| `curatorial_source` | `CURATION_2001` \| `DEMO` |
 
-`indexado_em` é controle do índice vetorial: nulo significa "o vetor no Qdrant
-está velho". A ingestão e o seed zeram esse campo ao mudar qualquer texto que
-alimenta o embedding.
+`indexed_at` is vector-index bookkeeping: null means "the Qdrant vector is
+stale". Ingestion and the seed null this field whenever they change any text
+that feeds the embedding.
 
-**Constraints que valem a pena conhecer:**
+**Constraints worth knowing:**
 
-- `filme_curadoria_real_declara_avaliador` — se `fonte_curatorial =
-  CURADORIA_2001`, `avaliado_por` não pode estar vazio nem conter `DEMO`.
-- `filme_demo_nao_se_passa_por_curadoria` — se `fonte_curatorial = DEMO`,
-  `avaliado_por` não pode conter `SONIA`, `MIRELLA` ou `AMBAS`.
+- `film_real_curation_declares_reviewer` — if `curatorial_source =
+  CURATION_2001`, `reviewed_by` cannot be empty and cannot contain `DEMO`.
+- `film_demo_does_not_pose_as_curation` — if `curatorial_source = DEMO`,
+  `reviewed_by` cannot contain `SONIA`, `MIRELLA` or `BOTH`.
 
-### `conexao` — o coração do Método
+### `connection` — the heart of the Method
 
-Uma ponte dirigida entre dois filmes.
+A directed bridge between two films.
 
-| Coluna | O que carrega |
+| Column | What it carries |
 |---|---|
-| `filme_origem_id`, `filme_destino_id` | De onde para onde |
-| `tipo` | `PORTA_DE_ENTRADA`, `SE_GOSTOU_DE`, `ANTES_DE_VER`, `LANCAMENTO_PARA_ACERVO`, `ACERVO_PARA_LANCAMENTO`, `OUTRO` |
-| `ponte_por` | `gênero`, `elenco`, `direção`, `tema`, … — texto livre |
-| `porque` | **OBRIGATÓRIO.** A razão da ponte, nas palavras da curadora |
-| `curador` | Quem estabeleceu |
+| `source_film_id`, `target_film_id` | From where to where |
+| `type` | `ENTRY_POINT`, `IF_YOU_LIKED`, `BEFORE_WATCHING`, `RELEASE_TO_ARCHIVE`, `ARCHIVE_TO_RELEASE`, `OTHER` |
+| `bridged_by` | `gênero`, `elenco`, `direção`, `tema`, … — free text |
+| `why` | **REQUIRED.** The reason for the bridge, in the curator's words |
+| `curator` | Who established it |
 
-`conexao_porque_nao_vazio` recusa string vazia ou só espaços — `NOT NULL` sozinho
-deixaria passar `''`. `conexao_origem_diferente_de_destino` impede a ponte
-degenerada.
+`connection_why_not_empty` rejects an empty or whitespace-only string — `NOT
+NULL` alone would let `''` through. `connection_source_differs_from_target`
+blocks the degenerate bridge.
 
-Unicidade em `(origem, destino, tipo)`: os mesmos dois filmes podem ter mais de
-uma ponte, desde que por tipos diferentes.
+Uniqueness on `(source, target, type)`: the same two films may have more than
+one bridge, as long as the types differ.
 
-### `jornada` / `jornada_filme`
+### `journey` / `journey_film`
 
-Trilha formativa atemporal — "Começando Kurosawa". `objetivo` descreve **que
-espectador ela forma**, não o que ela contém. Cada item tem `ordem` (única
-dentro da jornada) e `nota_do_porque`: por que este filme, **nesta posição**.
+A timeless formative track — "Começando Kurosawa". `objective` describes **which
+viewer it forms**, not what it contains. Each item has a `position` (unique
+within the journey) and a `why_note`: why this film, **in this position**.
 
-### `lista_editorial` / `lista_editorial_filme`
+### `editorial_list` / `editorial_list_film`
 
-Lista recorrente e datada, herdeira da Lista OMO. `periodo` é mês ou temporada
-(`2026-03`, `Mostra de SP 2026`); `tipo` é `TOP_DO_MES`, `TEMATICO`, `EVENTO` ou
-`OMO_HISTORICA`. Cada entrada carrega uma `linha_de_curadoria`.
+A recurring, dated list, heir to the Lista OMO. `period` is a month or season
+(`2026-03`, `Mostra de SP 2026`); `type` is `MONTHLY_TOP`, `THEMATIC`, `EVENT`
+or `HISTORIC_OMO`. Each entry carries a `curation_line`.
 
-A diferença para `jornada`: jornada é atemporal e forma; lista é datada e publica.
+The difference from `journey`: a journey is timeless and forms; a list is dated
+and publishes.
 
 ---
 
-## Conversa e feedback
+## Conversation and feedback
 
-### `sessao` e `mensagem`
+### `session` and `message`
 
-Não estão na spec original. Existem porque a Messages API é sem estado: a cada
-turno o loop reenvia o histórico completo, incluindo blocos de ferramenta e de
-raciocínio. `mensagem.blocos` guarda os blocos **crus**, em JSONB, exatamente
-como a API os produziu — reserializá-los num formato próprio quebraria o replay.
+Not in the original spec. They exist because the Messages API is stateless: on
+every turn the loop resends the full history, including tool and reasoning
+blocks. `message.blocks` stores those blocks **raw**, in JSONB, exactly as the
+API produced them — re-serializing them into a shape of our own would break
+replay.
 
-`sessao.curador` é sempre uma pessoa (`SONIA` ou `MIRELLA`), nunca `AMBAS`: é uma
-pessoa por sessão, e é isso que atribui corretamente cada avaliação.
+`session.curator` is always a person (`SONIA` or `MIRELLA`), never `BOTH`: one
+person per session, and that is what attributes each review correctly.
 
-### `conversa` — a unidade do dataset
+### `conversation` — the unit of the dataset
 
-| Coluna | O que carrega |
+| Column | What it carries |
 |---|---|
-| `pedido_do_usuario` | O que a pessoa queria |
-| `perguntas_da_ia` | Array JSON: o que a IA perguntou antes de indicar |
-| `recomendacao_da_ia` | O que ela sugeriu, com justificativa |
-| `correcao` | O ajuste da curadora, se houve |
-| `porque_da_correcao` | **OBRIGATÓRIO quando há correção** |
-| `avaliado_por` | `SONIA` \| `MIRELLA` \| `AMBAS` |
-| `nota_da_divergencia` | As duas leituras, com atribuição, quando divergiram |
-| `consenso` | `ACORDO` \| `DIVERGENCIA` \| `SO_UMA_AVALIOU` |
-| `qualidade` | `ABSORVE` \| `DESCARTA` \| `REVISAR` |
-| `confianca` | `ALTA` \| `NORMAL` — acréscimo à spec, que fala em confiança alta e normal sem dar um campo |
+| `user_request` | What the person wanted |
+| `ai_questions` | JSON array: what the AI asked before recommending |
+| `ai_recommendation` | What it suggested, with its reasoning |
+| `correction` | The curator's adjustment, if any |
+| `correction_reason` | **REQUIRED when there is a correction** |
+| `reviewed_by` | `SONIA` \| `MIRELLA` \| `BOTH` |
+| `disagreement_note` | Both readings, with attribution, when they disagreed |
+| `consensus` | `AGREEMENT` \| `DISAGREEMENT` \| `ONLY_ONE_REVIEWED` |
+| `quality` | `ABSORB` \| `DISCARD` \| `REVIEW` |
+| `confidence` | `HIGH` \| `NORMAL` — an addition to the spec, which speaks of high and normal confidence without giving them a field |
 
-**Em divergência, `correcao` é nula de propósito.** Divergência não elege
-vencedora; as duas leituras vão inteiras para `nota_da_divergencia`, com o nome
-de cada curadora. A constraint
-`conversa_divergencia_registra_as_duas_leituras` garante isso no banco, e
-`conversa_divergencia_e_sempre_revisar` impede que uma divergência seja marcada
-como absorvida.
+**On disagreement, `correction` is null on purpose.** A disagreement elects no
+winner; both readings go whole into `disagreement_note`, with each curator's
+name. The `conversation_disagreement_records_both_readings` constraint enforces
+that in the database, and
+`conversation_disagreement_is_always_review` prevents a disagreement from being
+marked as absorbed.
 
-As outras constraints: `conversa_correcao_exige_porque` (correção sem
-justificativa não entra) e `conversa_absorve_exige_confianca`.
+The other constraints: `conversation_correction_requires_reason` (a correction
+without a reason does not enter) and
+`conversation_absorb_requires_confidence`.
 
-### `conversa_filme`
+### `conversation_film`
 
-Acréscimo à spec. Liga a conversa aos filmes que a IA indicou
-(`RECOMENDADO_PELA_IA`) e aos que a curadora colocou no lugar
-(`CORRIGIDO_PELA_CURADORA`), com ordem. Sem isso a Fase 2 precisaria reparsear
-texto livre para saber de que filmes uma correção falava.
-
----
-
-## Memória entre visitas
-
-### `perfil`
-
-`usuario_id` é o identificador do espectador — na Fase 1, a persona que a
-curadora está testando. `gostos` e `evita` são arrays; `repertorio` e
-`momento_de_vida` são texto; `nivel` permite um tratamento mais próximo para
-premium.
-
-`perfil_filme_assistido` responde à pergunta "eu já aluguei esse?".
-`perfil_jornada` registra por onde a pessoa já foi conduzida.
-
-É este conjunto que alimenta o bloco de contexto da sessão descrito em
-[`docs/metodo.md`](metodo.md) — inclusive a lista do que ainda **falta** saber.
+An addition to the spec. Links the conversation to the films the AI recommended
+(`RECOMMENDED_BY_AI`) and the ones the curator put in their place
+(`CORRECTED_BY_CURATOR`), with an order. Without it, Phase 2 would have to
+re-parse free text to know which films a correction was about.
 
 ---
 
-## Taxonomia do acervo
+## Memory between visits
 
-Enum `CategoriaAcervo`, espelhando a estrutura de pastas da curadoria. Os rótulos
-de exibição vivem em [`src/lib/taxonomia.constant.ts`](../src/lib/taxonomia.constant.ts).
+### `profile`
 
-História da empresa · Método de treinamento · Curadoria · Clipping · Entrevistas ·
-Revistas 2001 · Cursos · Lista OMO · Atendimento e casos reais · Textos da Sonia ·
-Premiações · Marketing e eventos
+`user_id` is the viewer's identifier — in Phase 1, the persona a curator is
+testing. `likes` and `avoids` are arrays; `repertoire` and `life_moment` are
+text; `tier` allows closer treatment for premium customers.
 
-É enum e não texto livre de propósito: acrescentar uma categoria exige migration,
-e é assim que a organização do conhecimento não deriva com o tempo.
+`profile_watched_film` answers "have I already rented this one?".
+`profile_journey` records where the person has already been led.
+
+This set is what feeds the session context block described in
+[`docs/method.md`](method.md) — including the list of what is still **missing**.
+
+---
+
+## Archive taxonomy
+
+The `ArchiveCategory` enum, mirroring the curators' folder structure. Display
+labels live in [`src/lib/taxonomy.constant.ts`](../src/lib/taxonomy.constant.ts)
+and stay in Portuguese, because the curators read them.
+
+`COMPANY_HISTORY` · `TRAINING_METHOD` · `CURATION` · `CLIPPING` · `INTERVIEWS` ·
+`MAGAZINES_2001` · `COURSES` · `OMO_LIST` · `SERVICE_AND_REAL_CASES` ·
+`SONIA_TEXTS` · `AWARDS` · `MARKETING_AND_EVENTS`
+
+It is an enum and not free text on purpose: adding a category requires a
+migration, and that is how the organisation of the knowledge avoids drifting.
 
 ---
 
 ## Migrations
 
-| Migration | O que faz |
+| Migration | What it does |
 |---|---|
-| `20260921120000_init` | Todas as tabelas, enums, índices e chaves estrangeiras |
-| `20260921120100_porque_obrigatorio` | As CHECK constraints acima |
+| `20260921120000_init` | Every table, enum, index and foreign key |
+| `20260921120100_why_is_mandatory` | The CHECK constraints above |
 
-As CHECK constraints ficam numa migration separada porque o Prisma não modela
-`CHECK` — elas não aparecem em `schema.prisma` e não são vistas por
-`prisma migrate diff`. Isso tem duas consequências: `pnpm db:migrate:verify`
-continua limpo (as constraints não contam como drift), e a existência delas é
-responsabilidade de teste, não do diff.
+The CHECK constraints live in a separate migration because Prisma does not model
+`CHECK` — they do not appear in `schema.prisma` and are invisible to
+`prisma migrate diff`. That has two consequences: `pnpm db:migrate:verify` stays
+clean (the constraints do not count as drift), and proving they exist is the job
+of a test, not of the diff.

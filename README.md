@@ -1,312 +1,328 @@
 # Indicador 2001
 
-Ferramenta interna de curadoria da **2001 Vídeo**. Sonia e Mirella conversam com
-o Indicador, recebem recomendações de filmes e as corrigem registrando **o porquê**
-de cada correção. Cada conversa vira dado estruturado.
+An internal curation tool for **2001 Vídeo**. Sonia and Mirella talk to the
+Indicador, get film recommendations, and correct them while recording **the
+reason** for every correction. Each conversation becomes structured data.
 
-O valor deste projeto não é o chat. É o **dataset curatorial** que o chat coleta —
-o material que, na Fase 2 (fora deste repositório), treinará um modelo próprio.
-Toda decisão de arquitetura aqui existe para proteger a qualidade e a integridade
-desse dado.
+The value of this project is not the chat. It is the **curatorial dataset** the
+chat collects — the material that, in Phase 2 (outside this repository), will
+train a model of the archive's own. Every architectural decision here exists to
+protect the quality and integrity of that data.
+
+> **Language split.** Code, schema, and documentation are English. The product
+> surface is Brazilian Portuguese: everything the curators read, and the Method
+> system prompt itself. The Indicador converses in Portuguese because that is
+> the language of the archive and of its viewers.
 
 ---
 
-## Os dois baldes
+## The two buckets
 
-O princípio que mais restringe o desenho deste repositório.
+The principle that constrains the design of this repository the most.
 
-| Balde | O que é | Pode treinar? | Onde vive |
+| Bucket | What it is | Trainable? | Where it lives |
 |---|---|---|---|
-| **Conteúdo próprio da 2001** | Tom emocional, o que o filme provoca, notas de curadoria, contexto histórico, as conexões entre filmes e o porquê de cada uma, as correções das curadoras | **Sim** | Colunas curatoriais de `filme`, tabelas `conexao`, `jornada`, `lista_editorial`, `conversa` |
-| **Conteúdo de terceiros** | Ficha técnica e sinopse vindas do TMDB | **Não — consulta em tempo real apenas** | Colunas factuais de `filme`, marcadas com `fonte_factual` |
+| **The 2001 archive's own content** | Emotional tone, what the film provokes, curatorial notes, historical context, the connections between films and the reason for each, the curators' corrections | **Yes** | The curatorial columns of `film`, plus the `connection`, `journey`, `editorial_list` and `conversation` tables |
+| **Third-party content** | Technical record and synopsis from TMDB | **No — live lookup only** | The factual columns of `film`, tagged with `factual_source` |
 
-Como a separação é sustentada, e não apenas declarada:
+How the separation is sustained rather than merely declared:
 
-1. **Rastreabilidade por linha.** `filme.fonte_factual` diz de onde veio a ficha
-   (`TMDB` ou `FIXTURE_DEV`). `filme.fonte_curatorial` diz de quem é o estudo
-   (`CURADORIA_2001` ou `DEMO`).
-2. **A ingestão nunca sobrescreve curadoria.** `salvarCamadaFactual` grava só as
-   colunas factuais; rodar `pnpm ingerir:tmdb` mil vezes não toca no estudo das
-   curadoras. (`src/server/acervo.service.ts`)
-3. **O exportador só lê o balde próprio.** Nenhuma sinopse, pôster ou prosa do
-   TMDB entra no JSONL — por construção, não por filtro. Título e ano entram
-   apenas como identificação, e cada linha declara isso em `procedencia`.
-   (`src/server/exportador.service.ts`)
-4. **Demonstração não se disfarça de curadoria.** O seed de demonstração grava
-   `fonte_curatorial = DEMO` e `curador = DEMO`; uma CHECK constraint no banco
-   impede que esse dado apareça como avaliado por Sonia ou Mirella, e o
-   exportador o descarta.
+1. **Per-row traceability.** `film.factual_source` says where the record came
+   from (`TMDB` or `DEV_FIXTURE`). `film.curatorial_source` says whose study it
+   is (`CURATION_2001` or `DEMO`).
+2. **Ingestion never overwrites curation.** `saveFactualLayer` writes only the
+   factual columns; running `pnpm ingest:tmdb` a thousand times does not touch
+   the curators' study. (`src/server/archive.service.ts`)
+3. **The exporter only reads the archive's own bucket.** No TMDB synopsis,
+   poster or prose enters the JSONL — by construction, not by filtering. Title
+   and year go in only as identification, and every line declares that in
+   `provenance`. (`src/server/exporter.service.ts`)
+4. **Demonstration data does not pose as curation.** The demo seed writes
+   `curatorial_source = DEMO` and `curator = DEMO`; a CHECK constraint stops
+   that data from ever appearing as reviewed by Sonia or Mirella, and the
+   exporter drops it.
 
-O índice do Qdrant é a única coisa que mistura os dois baldes — e de propósito:
-ele é estrutura de consulta, nunca é exportado, e é descartável (`--recriar`).
+The Qdrant index is the only thing that mixes the two buckets — deliberately:
+it is lookup structure, it is never exported, and it is disposable
+(`--recreate`).
 
 ---
 
-## O porquê é sempre capturado
+## The why is always captured
 
-Correção sem justificativa é dado quase inútil. A regra é aplicada em três camadas
-independentes, porque uma só sempre acaba contornada:
+A correction without a reason is nearly useless data. The rule is enforced in
+three independent layers, because one layer always ends up bypassed:
 
-- **Interface** — o campo "por quê" é obrigatório assim que a curadora marca que
-  há correção. (`src/components/painel-de-correcao.component.tsx`)
-- **Portão de qualidade** — recusa justificativa ausente, curta demais ou de
-  reflexo ("não gostei"), e **nada é gravado**: devolve uma pergunta para a
-  curadora responder. (`src/server/tools/portao-de-qualidade.util.ts`)
-- **Banco** — CHECK constraints garantem a regra mesmo para quem chamar a API
-  direto. (`prisma/migrations/20260921120100_porque_obrigatorio/`)
+- **Interface** — the "why" field becomes required the moment a curator marks
+  that there is a correction.
+  (`src/components/correction-panel.component.tsx`)
+- **Quality gate** — refuses a missing, too-short, or reflex reason ("não
+  gostei"), and **nothing is written**: it returns a question for the curator to
+  answer. (`src/server/tools/quality-gate.util.ts`)
+- **Database** — CHECK constraints hold the rule even for someone calling the
+  API directly. (`prisma/migrations/20260921120100_why_is_mandatory/`)
 
-### O portão de qualidade
+### The quality gate
 
-| Situação | Resultado |
+| Situation | Outcome |
 |---|---|
-| Sonia e Mirella chegam à mesma leitura | `ABSORVE`, confiança `ALTA` |
-| Só uma avaliou | `ABSORVE`, confiança `NORMAL` |
-| As duas divergem | `REVISAR` — as duas leituras registradas em `nota_da_divergencia`, **sem eleger vencedora** (`correcao` fica nula, e o banco confirma) |
-| Feedback pobre ou ambíguo | Nada é gravado; o portão devolve a pergunta. Se a curadora não quiser detalhar, fica registrado como `DESCARTA` |
+| Sonia and Mirella reach the same reading | `ABSORB`, `HIGH` confidence |
+| Only one reviewed | `ABSORB`, `NORMAL` confidence |
+| The two disagree | `REVIEW` — both readings recorded in `disagreement_note`, **electing no winner** (`correction` stays null, and the database confirms it) |
+| Thin or ambiguous feedback | Nothing is written; the gate returns the question. If the curator will not elaborate, it is recorded as `DISCARD` |
 
-Quando as duas corrigem, o portão **não tenta adivinhar** se concordam comparando
-texto livre — ele pergunta. Inferir errado silenciaria uma divergência ou
-inventaria uma, e a pluralidade de olhares entre as duas é um ativo do dataset.
+When both correct, the gate **does not try to guess** whether they agree by
+comparing free text — it asks. Guessing wrong would either silence a real
+disagreement or invent one, and the plurality of readings between the two is an
+asset of the dataset.
 
 ---
 
-## Pré-requisitos
+## Prerequisites
 
-- **Node.js 24+** (o projeto é validado em 26)
+- **Node.js 24+** (validated against 26)
 - **pnpm 10.33.4** — `corepack enable && corepack install`
-- **Docker** com o plugin Compose
+- **Docker** with the Compose plugin
 
-Chaves de API são **opcionais para subir o projeto** e necessárias para usá-lo
-por inteiro; veja `.env.example`.
+API keys are **optional to bring the project up** and required to use it fully;
+see `.env.example`.
 
-## Como rodar do zero
+## Running it from scratch
 
 ```bash
 cp .env.example .env
 ```
 
-Abra o `.env` e troque pelo menos `APP_SESSION_SECRET` por uma string longa e
-aleatória. Depois:
+Open `.env` and replace at least `APP_SESSION_SECRET` with a long random string.
+Then:
 
 ```bash
 pnpm install
 ```
 
-Suba Postgres e Qdrant (a invocação sempre lista os dois arquivos, nesta ordem):
+Bring up Postgres and Qdrant (the invocation always lists both files, in order):
 
 ```bash
 docker compose -f compose.yaml -f compose.dev.yaml up -d
 ```
 
-Gere o cliente Prisma e aplique as migrations:
+Generate the Prisma client and apply the migrations:
 
 ```bash
 pnpm db:generate \
   && pnpm db:migrate:deploy
 ```
 
-Popule o acervo. Sem `TMDB_ACCESS_TOKEN` no `.env`, isto usa o fixture local de
-14 filmes (`data/filmes-fixture.json`):
+Populate the archive. Without `TMDB_ACCESS_TOKEN` in `.env`, this uses the local
+14-film fixture (`data/films-fixture.json`):
 
 ```bash
-pnpm ingerir:tmdb \
+pnpm ingest:tmdb \
   && pnpm db:seed \
-  && pnpm indexar:embeddings
+  && pnpm index:embeddings
 ```
 
-Suba a aplicação:
+Start the app:
 
 ```bash
 pnpm dev
 ```
 
-Abra <http://localhost:3000>, entre como Sonia ou Mirella, e comece uma conversa.
+Open <http://localhost:3000>, sign in as Sonia or Mirella, and start a
+conversation.
 
-> **Sem `ANTHROPIC_API_KEY` o chat não funciona** — todo o resto (ingestão,
-> indexação, páginas, exportação) funciona. A mensagem de erro diz exatamente isso.
+> **Without `ANTHROPIC_API_KEY` the chat does not work** — everything else
+> (ingestion, indexing, pages, export) does. The error message says exactly that.
 
-### Com as chaves de verdade
+### With the real keys
 
-No `.env`:
+In `.env`:
 
 ```bash
 ANTHROPIC_API_KEY=...
-TMDB_ACCESS_TOKEN=...          # token de leitura v4 do TMDB
+TMDB_ACCESS_TOKEN=...          # TMDB v4 read access token
 EMBEDDINGS_PROVIDER=voyage
 VOYAGE_API_KEY=...
 ```
 
-Depois traga fichas reais e refaça o índice — trocar de provider de embeddings
-exige reindexar, porque vetores de providers diferentes não se comparam:
+Then fetch real records and rebuild the index — switching embeddings provider
+requires re-indexing, because vectors from different providers do not compare:
 
 ```bash
-pnpm ingerir:tmdb -- --titulo "Rashomon" --titulo "Os Sete Samurais" \
-  && pnpm indexar:embeddings -- --recriar
+pnpm ingest:tmdb -- --title "Rashomon" --title "Os Sete Samurais" \
+  && pnpm index:embeddings -- --recreate
 ```
 
 ---
 
-## Comandos
+## Commands
 
-| Comando | O que faz |
+| Command | What it does |
 |---|---|
-| `pnpm dev` | Sobe a aplicação em desenvolvimento |
-| `pnpm build` / `pnpm start` | Build e execução de produção |
+| `pnpm dev` | Runs the app in development |
+| `pnpm build` / `pnpm start` | Production build and run |
 | `pnpm typecheck` | `tsc --noEmit` |
 | `pnpm lint` / `pnpm format` | ESLint / Prettier |
 | `pnpm test` | Vitest |
-| `pnpm db:generate` | Gera o cliente Prisma |
-| `pnpm db:migrate` | Cria e aplica migration a partir do `schema.prisma` (dev) |
-| `pnpm db:migrate:deploy` | Aplica as migrations versionadas (setup e produção) |
-| `pnpm db:migrate:verify` | Prova que as migrations produzem exatamente o `schema.prisma` |
-| `pnpm db:seed` | Camada curatorial de **demonstração** (`-- --limpar` remove) |
-| `pnpm ingerir:tmdb` | Ingere a camada factual (`-- --id`, `-- --titulo`, `-- --fixture`) |
-| `pnpm indexar:embeddings` | Gera e indexa os vetores (`-- --tudo`, `-- --recriar`) |
-| `pnpm exportar:dataset` | Exporta o JSONL (`-- --saida exports/2026-09.jsonl`) |
+| `pnpm db:generate` | Generates the Prisma client |
+| `pnpm db:migrate` | Creates and applies a migration from `schema.prisma` (dev) |
+| `pnpm db:migrate:deploy` | Applies the versioned migrations (setup and production) |
+| `pnpm db:migrate:verify` | Proves the migrations produce exactly `schema.prisma` |
+| `pnpm db:seed` | **Demonstration** curatorial layer (`-- --clear` removes it) |
+| `pnpm ingest:tmdb` | Ingests the factual layer (`-- --id`, `-- --title`, `-- --fixture`) |
+| `pnpm index:embeddings` | Generates and indexes the vectors (`-- --all`, `-- --recreate`) |
+| `pnpm export:dataset` | Exports the JSONL (`-- --out exports/2026-09.jsonl`) |
 
-Para rodar um comando dentro de um contêiner já de pé, use `docker compose exec`:
+To run a command inside an already-running container, use `docker compose exec`:
 
 ```bash
 docker compose -f compose.yaml -f compose.dev.yaml exec -T postgres \
-  psql -U indicador -d indicador_2001 -c 'SELECT count(*) FROM filme'
+  psql -U indicador -d indicador_2001 -c 'SELECT count(*) FROM film'
 ```
 
 ---
 
-## Arquitetura
+## Architecture
 
 ```text
-app/                      Rotas do App Router (thin: só rota, auth e composição)
-  api/auth|sessao|chat|feedback|exportar/route.ts
-  chat/[sessaoId]/        Página da conversa
-  conversas/              O dataset, como tabela
+app/                      App Router routes (thin: route concerns, auth, composition)
+  api/auth|session|chat|feedback|export/route.ts
+  chat/[sessionId]/       The conversation page
+  conversations/          The dataset, as a table
 src/
-  method/system-prompt.constant.ts   O Método 2001 — texto, feito para as curadoras editarem
+  method/system-prompt.constant.ts   The 2001 Method — Portuguese prose, for the curators to edit
   components/             Interface (client components)
-  lib/                    Tipos e utilitários compartilhados servidor/navegador
-  server/                 Tudo que só roda no servidor (marcado com `server-only`)
-    acervo.service.ts     Ingestão factual sem tocar na curadoria
-    indexacao.service.ts  Texto → vetor → Qdrant
-    exportador.service.ts JSONL da Fase 2
-    embeddings/           Provider plugável: voyage | openai | local
-    tools/                As quatro tools + o portão de qualidade
-    indicador/            O loop de conversa com tool calling
-prisma/                   schema.prisma + migrations versionadas
-scripts/                  CLIs de ingestão, indexação, seed e exportação
-data/                     Fixture factual e curadoria de demonstração
+  lib/                    Types and helpers shared by server and browser
+  server/                 Everything server-only (marked with `server-only`)
+    archive.service.ts    Factual ingestion that never touches curation
+    indexing.service.ts   Text → vector → Qdrant
+    exporter.service.ts   The Phase 2 JSONL
+    embeddings/           Pluggable provider: voyage | openai | local
+    tools/                The four tools plus the quality gate
+    indicator/            The tool-calling conversation loop
+prisma/                   schema.prisma + versioned migrations
+scripts/                  Ingestion, indexing, seeding and export CLIs
+data/                     Factual fixture and demonstration curation
 ```
 
-### O fluxo
+### The flow
 
-1. A curadora abre uma sessão, opcionalmente ligada a uma persona de espectador.
-2. O Indicador recebe o Método como system prompt e, **depois do ponto de cache**,
-   um bloco com o que se sabe daquela pessoa — e uma lista explícita do que ainda
-   **não** se sabe, como perguntas em aberto. É assim que "perguntar antes de
-   recomendar" deixa de depender da boa vontade do modelo.
-3. Ele chama `buscar_filmes` / `detalhes_do_filme` / `buscar_conexoes` para
-   fundamentar, e responde com no máximo três opções, cada uma justificada.
-4. A curadora avalia. A interface exige o porquê.
-5. `registrar_feedback` grava, passando pelo portão de qualidade.
-6. `pnpm exportar:dataset` (ou `/api/exportar`) produz o JSONL.
+1. A curator opens a session, optionally tied to a viewer persona.
+2. The Indicador receives the Method as its system prompt and, **after the cache
+   breakpoint**, a block with what is known about that person — plus an explicit
+   list of what is **not** yet known, as open questions. That is how "ask before
+   recommending" stops depending on the model's good will.
+3. It calls `search_films` / `film_details` / `search_connections` to ground
+   itself, and answers with at most three options, each one justified.
+4. The curator reviews. The interface demands the why.
+5. `record_feedback` writes it, passing through the quality gate.
+6. `pnpm export:dataset` (or `/api/export`) produces the JSONL.
 
-### As quatro tools
+### The four tools
 
-| Tool | Papel |
+Tool names and parameters are English because they are the API contract; the
+descriptions are Portuguese because they are prompt content, read alongside the
+Method.
+
+| Tool | Role |
 |---|---|
-| `buscar_filmes` | Busca vetorial no Qdrant por tom/tema/significado — não por palavra-chave |
-| `detalhes_do_filme` | Ficha factual + camada curatorial de um filme |
-| `buscar_conexoes` | As pontes que as curadoras estabeleceram, com o porquê de cada uma |
-| `registrar_feedback` | Grava a correção, passando pelo portão de qualidade |
+| `search_films` | Vector search in Qdrant by tone, theme and meaning — not by keyword |
+| `film_details` | A film's factual record plus its curatorial layer |
+| `search_connections` | The bridges the curators built, with the reason for each |
+| `record_feedback` | Records the correction, passing through the quality gate |
 
 ---
 
-## Decisões de projeto
+## Design decisions
 
-**Prisma, não Drizzle.** O valor deste repositório está na integridade do dado, e
-o que mais importa é a camada de migrations: as `migrate diff` / `migrate deploy`
-do Prisma permitem provar mecanicamente que o SQL versionado produz exatamente o
-schema declarado (`pnpm db:migrate:verify`). O Prisma também gera enums nativos do
-Postgres a partir do schema, o que mantém os vocabulários do Método (`Curador`,
-`Qualidade`, `CategoriaAcervo`) como restrição do banco e não como convenção.
-Fixado na linha **6.x**: a 7 mudou o formato de configuração e não havia como
-validar essa mudança neste ambiente.
+**Prisma, not Drizzle.** The value of this repository is data integrity, and the
+migrations layer is what matters most: Prisma's `migrate diff` / `migrate
+deploy` let you prove mechanically that the versioned SQL produces exactly the
+declared schema (`pnpm db:migrate:verify`). Prisma also generates native
+Postgres enums from the schema, which keeps the Method's vocabularies
+(`Curator`, `Quality`, `ArchiveCategory`) as database constraints rather than
+conventions. Pinned to the **6.x** line: 7 changed the configuration format and
+there was no way to validate that change in this environment.
 
-**Voyage AI como padrão de embeddings.** A Anthropic não expõe endpoint de
-embeddings; a Voyage é o provider que ela recomenda. A interface é plugável
-(`src/server/embeddings/`): trocar para OpenAI é mudar `EMBEDDINGS_PROVIDER`.
-Existe também um provider `local`, determinístico e sem rede, para que o projeto
-rode sem nenhuma chave — ele aproxima **sobreposição de palavras, não
-significado**, que é o oposto do que o Método pede. Serve para demonstração;
-nunca para indexar o acervo real.
+**Voyage AI as the embeddings default.** Anthropic exposes no embeddings
+endpoint; Voyage is the provider it recommends. The interface is pluggable
+(`src/server/embeddings/`): switching to OpenAI is one environment variable.
+There is also a `local` provider, deterministic and offline, so the project runs
+with no key at all — it approximates **word overlap, not meaning**, which is the
+opposite of what the Method asks for. Good for a demo; never for indexing the
+real archive.
 
-**`claude-opus-5` com fallback.** O modelo é configurável por
-`ANTHROPIC_MODEL`. O pedido declara um fallback de servidor para o caso de recusa
-por política — improvável num produto de cinema, mas uma conversa que morre no
-meio sem explicação é pior que uma atendida pelo modelo anterior.
+**`claude-opus-5` with a fallback.** The model is configurable via
+`ANTHROPIC_MODEL`. The request declares a server-side fallback in case of a
+policy refusal — unlikely in a film product, but a conversation that dies
+mid-turn with no explanation is worse than one served by the previous model.
 
-**`compose.yaml` / `compose.dev.yaml`, não `docker-compose.yml`.** A spec pedia
-"docker-compose"; o padrão da EPCVIP exige a nomenclatura canônica da Compose Spec
-e invocação explícita com `-f`. O comportamento é o mesmo.
+**`compose.yaml` / `compose.dev.yaml`, not `docker-compose.yml`.** The spec
+asked for "docker-compose"; the EPCVIP standard requires the Compose Spec's
+canonical naming and explicit `-f` invocation. Behaviour is identical.
 
-**O pacote se chama `@epcvip/indicador-2001`.** É o escopo que o padrão de
-manifesto da organização exige. O pacote é privado e nunca publicado; se este
-projeto sair do guarda-chuva da EPCVIP, troque o escopo.
+**The package is named `@epcvip/indicador-2001`.** That is the scope the
+organisation's manifest standard requires. The package is private and never
+published; if this project leaves the EPCVIP umbrella, change the scope.
 
-**`ConversaFilme` não está na spec.** Liga cada conversa aos filmes que a IA
-indicou e aos que a curadora colocou no lugar. Sem isso, a Fase 2 teria que
-reparsear texto livre para saber de que filmes uma correção falava. A interface
-manual não preenche esses ids (a curadora teria que digitar UUIDs); o caminho em
-que o próprio Indicador chama `registrar_feedback` preenche, porque ele tem os ids.
+**`ConversationFilm` is not in the spec.** It links each conversation to the
+films the AI recommended and the ones the curator put in their place. Without
+it, Phase 2 would have to re-parse free text to know which films a correction
+was about. The manual interface does not fill those ids in (the curator would
+have to type UUIDs); the path where the Indicador itself calls `record_feedback`
+does, because it has them.
 
-**`Sessao` e `Mensagem` não estão na spec.** A Messages API é sem estado e o loop
-precisa devolver o histórico íntegro — inclusive blocos de ferramenta — a cada
-turno. `Conversa` continua sendo a unidade exportável; estas duas guardam o
-transcript que a sustenta.
-
----
-
-## Documentação
-
-- [`docs/metodo.md`](docs/metodo.md) — o Método 2001 e como editá-lo
-- [`docs/schema.md`](docs/schema.md) — o modelo de dados, entidade por entidade
+**`Session` and `Message` are not in the spec.** The Messages API is stateless
+and the loop has to hand back the full history — tool blocks included — on every
+turn. `Conversation` remains the exportable unit; these two hold the transcript
+behind it.
 
 ---
 
-## Limitações conhecidas
+## Documentation
 
-- **Duas portas para `registrar_feedback`.** A curadora pode avaliar pelo painel
-  de correção **ou** pedindo ao próprio Indicador que registre. Os dois caminhos
-  criam linhas separadas em `conversa`; não há deduplicação. Avalie cada
-  recomendação por um caminho só, ou o dataset ganha registros gêmeos.
-- **O painel não preenche `conversa_filme`.** Ligar a conversa aos filmes exigiria
-  digitar UUIDs à mão. Só o caminho em que o Indicador chama a tool preenche esse
-  vínculo, porque ele tem os ids.
-- **O provider `local` de embeddings não faz busca semântica.** Ele aproxima
-  sobreposição de palavras. É andaime de demonstração; configure a Voyage antes
-  de indexar acervo real.
-- **Sem paginação em `/conversas`.** A página mostra as 100 mais recentes.
-
-## Fora de escopo (Fase 1)
-
-Deliberadamente **não** construído aqui: fine-tuning ou qualquer treino de modelo
-(Fase 2, fora deste repo, em Python + GPU); API pública para terceiros (Fase 3);
-interface rica de usuário final; autenticação robusta ou multiusuário em escala;
-otimização de custo de token.
+- [`docs/method.md`](docs/method.md) — the 2001 Method and how to edit it
+- [`docs/schema.md`](docs/schema.md) — the data model, entity by entity
 
 ---
 
-## Estado de verificação
+## Known limitations
 
-Este repositório foi escrito num ambiente onde instalação de pacotes e Docker são
-somente-leitura. Em consequência, **nada foi executado**: não rodaram `pnpm install`,
-`tsc --noEmit`, `eslint`, `prisma migrate`, os testes, nem a aplicação.
+- **Two doors into `record_feedback`.** A curator can review through the
+  correction panel **or** by asking the Indicador to record it. Both paths
+  create separate rows in `conversation`; there is no deduplication. Review each
+  recommendation through one path, or the dataset gains twin records.
+- **The panel does not fill `conversation_film`.** Linking the conversation to
+  films would mean typing UUIDs by hand. Only the path where the Indicador calls
+  the tool fills that link, because it has the ids.
+- **The `local` embeddings provider is not real semantic search.** It
+  approximates word overlap. It is demo scaffolding; configure Voyage before
+  indexing a real archive.
+- **No pagination on `/conversations`.** The page shows the 100 most recent.
 
-O que **foi** verificado mecanicamente: a forma do `package.json` (validador de
-manifesto), os dois arquivos Compose (yamllint no domínio `compose`), e o lockfile
-(`pnpm install --lockfile-only` resolveu as 428 dependências sem conflito de peer).
+## Out of scope (Phase 1)
 
-Primeira coisa a rodar na sua máquina, nesta ordem — espere ajustes de tipo no
-primeiro `typecheck`:
+Deliberately **not** built here: fine-tuning or any model training (Phase 2,
+outside this repo, in Python + GPU); a public API for third parties (Phase 3); a
+rich end-user interface; robust or multi-tenant authentication; token cost
+optimisation.
+
+---
+
+## Verification status
+
+This repository was written in an environment where package installation and
+Docker are read-only. As a result, **nothing has been executed**: no `pnpm
+install`, `tsc --noEmit`, `eslint`, `prisma migrate`, tests, or the application
+itself.
+
+What **was** verified mechanically: the shape of `package.json` (manifest
+validator), both Compose files (yamllint in the `compose` domain), and the
+lockfile (`pnpm install --lockfile-only` resolved all dependencies with no peer
+conflicts).
+
+First thing to run on your machine, in this order — expect type adjustments on
+the first `typecheck`:
 
 ```bash
 pnpm install \
@@ -316,8 +332,8 @@ pnpm install \
   && pnpm test
 ```
 
-Depois, com o banco de pé, confirme que as migrations versionadas batem com o
-schema (exige `SHADOW_DATABASE_URL` no `.env` e o banco sombra criado):
+Then, with the database up, confirm the versioned migrations match the schema
+(requires `SHADOW_DATABASE_URL` in `.env` and the shadow database created):
 
 ```bash
 pnpm db:migrate:verify

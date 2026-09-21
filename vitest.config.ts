@@ -5,8 +5,8 @@ import { defineConfig } from 'vitest/config';
 export default defineConfig({
   resolve: {
     alias: { '@': path.resolve(import.meta.dirname, 'src') },
-    // Mesma condição que o Next usa para código de servidor: sem ela o import
-    // de `server-only` resolve para o módulo que lança, e todo teste quebra.
+    // The same condition Next uses for server code: without it the `server-only`
+    // import resolves to the module that throws, and every test breaks.
     conditions: ['react-server'],
   },
   test: {

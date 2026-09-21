@@ -3,66 +3,66 @@ import 'server-only';
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 
-import { exigirCuradora } from '@/server/auth.service';
-import { responderErro } from '@/server/resposta-http.util';
+import { requireCurator } from '@/server/auth.service';
+import { respondError } from '@/server/http-response.util';
 import {
-  DescartarNovoSchema,
-  RegistrarFeedbackInputSchema,
-  descartarFeedback,
-  registrarDescarteNovo,
-  registrarFeedback,
-} from '@/server/tools/registrar-feedback.service';
+  DiscardNewSchema,
+  RecordFeedbackInputSchema,
+  discardFeedback,
+  recordFeedback,
+  recordNewDiscard,
+} from '@/server/tools/record-feedback.service';
 
-const DescartarSchema = z.union([
+const DiscardSchema = z.union([
   z.object({
-    conversaId: z.uuid(),
-    motivo: z.string().trim().min(1).max(2000),
+    conversationId: z.uuid(),
+    reason: z.string().trim().min(1).max(2000),
   }),
-  DescartarNovoSchema,
+  DiscardNewSchema,
 ]);
 
 /**
- * Registra a avaliação de uma recomendação.
+ * Records the review of a recommendation.
  *
- * Caminho direto da interface de correção — não passa pelo modelo. O porquê que
- * a curadora escreve chega aqui exatamente como ela escreveu, e o portão de
- * qualidade decide o que fazer com ele. Um 422 significa que nada foi gravado e
- * a interface precisa fazer a pergunta que vem no corpo.
+ * This is the direct path from the correction interface — it does not go
+ * through the model. The reason the curator writes arrives here exactly as she
+ * wrote it, and the quality gate decides what to do with it. A 422 means
+ * nothing was written and the interface must ask the question in the body.
  */
 export async function POST(request: Request): Promise<NextResponse> {
   try {
-    await exigirCuradora();
+    await requireCurator();
 
-    const input = RegistrarFeedbackInputSchema.parse(await request.json());
+    const input = RecordFeedbackInputSchema.parse(await request.json());
 
-    return NextResponse.json(await registrarFeedback(input), { status: 201 });
+    return NextResponse.json(await recordFeedback(input), { status: 201 });
   } catch (e) {
-    return responderErro(e);
+    return respondError(e);
   }
 }
 
 /**
- * Marca uma conversa como descartada quando a curadora não quis esclarecer.
+ * Marks a review as discarded when the curator would not clarify.
  *
- * Registrar o descarte é deliberado: apagar faria a Fase 2 pensar que aquela
- * recomendação nunca foi avaliada.
+ * Recording the discard is deliberate: deleting would make Phase 2 believe the
+ * recommendation was never reviewed.
  */
 export async function PATCH(request: Request): Promise<NextResponse> {
   try {
-    await exigirCuradora();
+    await requireCurator();
 
-    const corpo = DescartarSchema.parse(await request.json());
+    const body = DiscardSchema.parse(await request.json());
 
-    if ('conversaId' in corpo) {
-      await descartarFeedback(corpo.conversaId, corpo.motivo);
+    if ('conversationId' in body) {
+      await discardFeedback(body.conversationId, body.reason);
 
-      return NextResponse.json({ conversaId: corpo.conversaId, qualidade: 'DESCARTA' });
+      return NextResponse.json({ conversationId: body.conversationId, quality: 'DISCARD' });
     }
 
-    const conversaId = await registrarDescarteNovo(corpo);
+    const conversationId = await recordNewDiscard(body);
 
-    return NextResponse.json({ conversaId, qualidade: 'DESCARTA' }, { status: 201 });
+    return NextResponse.json({ conversationId, quality: 'DISCARD' }, { status: 201 });
   } catch (e) {
-    return responderErro(e);
+    return respondError(e);
   }
 }

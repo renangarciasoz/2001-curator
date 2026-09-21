@@ -2,66 +2,66 @@ import 'server-only';
 
 import { z } from 'zod';
 
-import { ProviderIndisponivelError } from '@/lib/app-error.util';
+import { ProviderUnavailableError } from '@/lib/app-error.util';
 
 import { env } from '../env.config';
 
-import { ordenarPorIndice } from './ordenar-por-indice.util';
+import { orderByIndex } from './order-by-index.util';
 
-import type { ProviderDeEmbeddings, TipoDeTexto } from './embeddings.service';
+import type { EmbeddingsProvider, TextKind } from './embeddings.service';
 
 const VOYAGE_URL = 'https://api.voyageai.com/v1/embeddings';
 
-/** Dimensões por modelo. Usado para criar a coleção do Qdrant com o tamanho certo. */
-const DIMENSOES_POR_MODELO: Readonly<Record<string, number>> = {
+/** Dimensions per model. Used to create the Qdrant collection at the right size. */
+const DIMENSIONS_BY_MODEL: Readonly<Record<string, number>> = {
   'voyage-3': 1024,
   'voyage-3-lite': 512,
   'voyage-3-large': 1024,
   'voyage-code-3': 1024,
 };
 
-const RespostaSchema = z.object({
+const ResponseSchema = z.object({
   data: z.array(z.object({ index: z.number().int(), embedding: z.array(z.number()) })),
 });
 
-/** Provider de embeddings da Voyage AI — o recomendado pela Anthropic. */
-export function criarProviderVoyage(): ProviderDeEmbeddings {
-  const modelo = env.VOYAGE_MODEL;
-  const dimensoes = DIMENSOES_POR_MODELO[modelo];
+/** Voyage AI embeddings — the provider Anthropic recommends. */
+export function createVoyageProvider(): EmbeddingsProvider {
+  const model = env.VOYAGE_MODEL;
+  const dimensions = DIMENSIONS_BY_MODEL[model];
 
-  if (dimensoes === undefined) {
-    throw new ProviderIndisponivelError(
+  if (dimensions === undefined) {
+    throw new ProviderUnavailableError(
       'voyage',
-      `dimensões desconhecidas para o modelo "${modelo}". ` +
-        `Adicione-o a DIMENSOES_POR_MODELO em voyage.service.ts.`,
+      `unknown dimensions for model "${model}". ` +
+        `Add it to DIMENSIONS_BY_MODEL in voyage.service.ts.`,
     );
   }
 
   return {
-    nome: 'voyage',
-    modelo,
-    dimensoes,
-    gerar: (textos, tipo, signal) => gerar(modelo, textos, tipo, signal),
+    name: 'voyage',
+    model,
+    dimensions,
+    generate: (texts, kind, signal) => generate(model, texts, kind, signal),
   };
 }
 
-async function gerar(
-  modelo: string,
-  textos: readonly string[],
-  tipo: TipoDeTexto,
+async function generate(
+  model: string,
+  texts: readonly string[],
+  kind: TextKind,
   signal?: AbortSignal,
 ): Promise<readonly (readonly number[])[]> {
   if (env.VOYAGE_API_KEY.length === 0) {
-    throw new ProviderIndisponivelError(
+    throw new ProviderUnavailableError(
       'voyage',
-      'VOYAGE_API_KEY não configurado. Use EMBEDDINGS_PROVIDER=local para rodar sem chave.',
+      'VOYAGE_API_KEY is not configured. Use EMBEDDINGS_PROVIDER=local to run without a key.',
     );
   }
 
-  let resposta: Response;
+  let response: Response;
 
   try {
-    resposta = await fetch(VOYAGE_URL, {
+    response = await fetch(VOYAGE_URL, {
       method: 'POST',
       cache: 'no-store',
       headers: {
@@ -69,25 +69,25 @@ async function gerar(
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: modelo,
-        input: textos,
-        input_type: tipo === 'consulta' ? 'query' : 'document',
+        model,
+        input: texts,
+        input_type: kind === 'query' ? 'query' : 'document',
       }),
       signal: signal ?? null,
     });
   } catch (e) {
-    throw new ProviderIndisponivelError('voyage', 'falha de rede', { cause: e });
+    throw new ProviderUnavailableError('voyage', 'network failure', { cause: e });
   }
 
-  if (!resposta.ok) {
-    throw new ProviderIndisponivelError('voyage', `HTTP ${String(resposta.status)}`);
+  if (!response.ok) {
+    throw new ProviderUnavailableError('voyage', `HTTP ${String(response.status)}`);
   }
 
-  const resultado = RespostaSchema.safeParse(await resposta.json());
+  const result = ResponseSchema.safeParse(await response.json());
 
-  if (!resultado.success) {
-    throw new ProviderIndisponivelError('voyage', 'resposta em formato inesperado');
+  if (!result.success) {
+    throw new ProviderUnavailableError('voyage', 'unexpected response shape');
   }
 
-  return ordenarPorIndice(resultado.data.data, textos.length, 'voyage');
+  return orderByIndex(result.data.data, texts.length, 'voyage');
 }

@@ -1,42 +1,42 @@
 /**
- * Gera os embeddings do acervo e indexa no Qdrant.
+ * Generates the archive's embeddings and indexes them in Qdrant.
  *
- *   pnpm indexar:embeddings              # só o que está pendente
- *   pnpm indexar:embeddings -- --tudo    # reindexa todo o acervo
- *   pnpm indexar:embeddings -- --recriar # apaga a coleção e reindexa do zero
+ *   pnpm index:embeddings              # only what is pending
+ *   pnpm index:embeddings -- --all     # re-index the whole archive
+ *   pnpm index:embeddings -- --recreate # drop the collection and start over
  *
- * `--recriar` é o caminho para trocar de provider de embeddings: vetores de
- * providers diferentes não se comparam, então o índice inteiro precisa ser refeito.
+ * `--recreate` is how you switch embeddings provider: vectors from different
+ * providers do not compare, so the whole index has to be rebuilt.
  */
 import { parseArgs } from 'node:util';
 
-import { descreverErro } from '../src/lib/app-error.util';
+import { describeError } from '../src/lib/app-error.util';
 import { db } from '../src/server/db.service';
-import { indexarAcervo } from '../src/server/indexacao.service';
+import { indexArchive } from '../src/server/indexing.service';
 
 async function main(): Promise<void> {
   const { values } = parseArgs({
     options: {
-      tudo: { type: 'boolean', default: false },
-      recriar: { type: 'boolean', default: false },
+      all: { type: 'boolean', default: false },
+      recreate: { type: 'boolean', default: false },
     },
   });
 
-  const resultado = await indexarAcervo({
-    tudo: values.tudo ?? false,
-    recriar: values.recriar ?? false,
+  const result = await indexArchive({
+    all: values.all ?? false,
+    recreate: values.recreate ?? false,
   });
 
   console.log(
-    `Provider ${resultado.provider} (${resultado.modelo}, ` +
-      `${String(resultado.dimensoes)} dimensões): ` +
-      `${String(resultado.indexados)} filmes indexados.`,
+    `Provider ${result.provider} (${result.model}, ` +
+      `${String(result.dimensions)} dimensions): ` +
+      `${String(result.indexed)} films indexed.`,
   );
 
-  if (resultado.provider === 'local' && resultado.indexados > 0) {
+  if (result.provider === 'local' && result.indexed > 0) {
     console.warn(
-      '\nAviso: o provider `local` aproxima sobreposição de palavras, não significado.\n' +
-        'Para o acervo real, configure VOYAGE_API_KEY e rode com --recriar.',
+      '\nWarning: the `local` provider approximates word overlap, not meaning.\n' +
+        'For the real archive, configure VOYAGE_API_KEY and run with --recreate.',
     );
   }
 }
@@ -44,7 +44,7 @@ async function main(): Promise<void> {
 try {
   await main();
 } catch (e) {
-  console.error(`Indexação falhou: ${descreverErro(e)}`);
+  console.error(`Indexing failed: ${describeError(e)}`);
   process.exitCode = 1;
 } finally {
   await db.$disconnect();

@@ -1,8 +1,9 @@
 /**
- * Base de todos os erros de domínio do Indicador.
+ * Base class for every domain error in the Indicador.
  *
- * O `code` é estável e serve para correlação em log e para o cliente HTTP
- * decidir o que mostrar — a `message` nunca é devolvida crua numa resposta.
+ * `code` is stable and drives log correlation and the HTTP status mapping.
+ * Messages here are developer-facing and in English; the Portuguese text the
+ * curators read is produced at the HTTP boundary and in the UI.
  */
 export class AppError extends Error {
   readonly code: string;
@@ -14,65 +15,71 @@ export class AppError extends Error {
   }
 }
 
-/** Uma variável de ambiente obrigatória está ausente ou malformada. */
-export class ConfiguracaoInvalidaError extends AppError {
-  constructor(detalhe: string, options?: ErrorOptions) {
-    super('configuracao_invalida', `configuração inválida: ${detalhe}`, options);
+/** A required environment variable is missing or malformed. */
+export class InvalidConfigurationError extends AppError {
+  constructor(detail: string, options?: ErrorOptions) {
+    super('invalid_configuration', `invalid configuration: ${detail}`, options);
   }
 }
 
-/** Um provider externo (TMDB, embeddings, Anthropic) não respondeu ou recusou. */
-export class ProviderIndisponivelError extends AppError {
+/** An external provider (TMDB, embeddings, Anthropic) failed or refused. */
+export class ProviderUnavailableError extends AppError {
   readonly provider: string;
 
-  constructor(provider: string, detalhe: string, options?: ErrorOptions) {
-    super('provider_indisponivel', `${provider} indisponível: ${detalhe}`, options);
+  constructor(provider: string, detail: string, options?: ErrorOptions) {
+    super('provider_unavailable', `${provider} unavailable: ${detail}`, options);
     this.provider = provider;
   }
 }
 
-export class FilmeNaoEncontradoError extends AppError {
-  constructor(filmeId: string) {
-    super('filme_nao_encontrado', `filme ${filmeId} não existe no acervo`);
+export class FilmNotFoundError extends AppError {
+  constructor(filmId: string) {
+    super('film_not_found', `film ${filmId} is not in the archive`);
   }
 }
 
-export class SessaoNaoEncontradaError extends AppError {
-  constructor(sessaoId: string) {
-    super('sessao_nao_encontrada', `sessão ${sessaoId} não existe`);
+export class SessionNotFoundError extends AppError {
+  constructor(sessionId: string) {
+    super('session_not_found', `session ${sessionId} does not exist`);
   }
 }
 
-export class ConversaNaoEncontradaError extends AppError {
-  constructor(conversaId: string) {
-    super('conversa_nao_encontrada', `conversa ${conversaId} não existe`);
+export class ConversationNotFoundError extends AppError {
+  constructor(conversationId: string) {
+    super('conversation_not_found', `conversation ${conversationId} does not exist`);
   }
 }
 
-/** A curadora não está autenticada, ou a senha de curadoria não confere. */
-export class CuradoraNaoAutenticadaError extends AppError {
-  constructor(detalhe = 'nenhuma curadora identificada nesta sessão') {
-    super('curadora_nao_autenticada', detalhe);
+/** No curator is signed in, or the shared curation password did not match. */
+export class CuratorNotAuthenticatedError extends AppError {
+  constructor(detail = 'no curator identified in this session') {
+    super('curator_not_authenticated', detail);
   }
 }
 
 /**
- * O feedback chegou pobre ou ambíguo demais para virar dado.
+ * The feedback arrived too thin or too ambiguous to become data.
  *
- * Não é uma falha técnica: é o portão de qualidade pedindo esclarecimento antes
- * de gravar. Quem recebe este erro deve perguntar, não descartar em silêncio.
+ * Not a technical failure: this is the quality gate asking for clarification
+ * before writing. Whoever catches it must ask, never discard silently.
  */
-export class FeedbackAmbiguoError extends AppError {
-  readonly pedidoDeEsclarecimento: string;
+export class AmbiguousFeedbackError extends AppError {
+  /**
+   * The question to put to the curator, in Brazilian Portuguese.
+   *
+   * Deliberately not English: this string is shown to Sonia and Mirella and is
+   * also handed to the model so it can ask them in their own language.
+   */
+  readonly clarificationRequest: string;
 
-  constructor(pedidoDeEsclarecimento: string) {
-    super('feedback_ambiguo', 'feedback insuficiente para virar dado de curadoria');
-    this.pedidoDeEsclarecimento = pedidoDeEsclarecimento;
+  constructor(clarificationRequest: string) {
+    super('ambiguous_feedback', 'feedback is insufficient to become curation data');
+    this.clarificationRequest = clarificationRequest;
   }
 }
 
-/** Converte um `unknown` de `catch` numa mensagem segura para log. */
-export function descreverErro(e: unknown): string {
+/** Turns an `unknown` from a `catch` into a message that is safe to log. */
+export function describeError(e: unknown): string {
   if (e instanceof Error) {
     return e.message;
   }

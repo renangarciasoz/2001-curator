@@ -2,31 +2,31 @@ import 'server-only';
 
 import { z } from 'zod';
 
-import { ProviderIndisponivelError } from '@/lib/app-error.util';
+import { ProviderUnavailableError } from '@/lib/app-error.util';
 
 import { env } from './env.config';
 
 const TMDB_BASE_URL = 'https://api.themoviedb.org/3';
 
 /**
- * Ficha factual de um filme — o balde de terceiros.
+ * The factual record of a film — the third-party bucket.
  *
- * Isto é consulta, nunca material de treino. A camada curatorial da 2001 vive
- * em colunas separadas de `filme` e o exportador de dataset jamais lê estes campos.
+ * This is lookup, never training material. The 2001 curatorial layer lives in
+ * separate columns of `film`, and the dataset exporter never reads these fields.
  */
-export type FilmeFactual = {
+export type FactualFilm = {
   tmdbId: number | null;
-  titulo: string;
-  tituloOriginal: string | null;
-  ano: number | null;
-  diretor: string | null;
-  pais: string | null;
-  sinopseFactual: string | null;
+  title: string;
+  originalTitle: string | null;
+  year: number | null;
+  director: string | null;
+  country: string | null;
+  factualSynopsis: string | null;
   posterPath: string | null;
 };
 
-/** Resposta do TMDB: conteúdo externo, portanto validado antes de entrar no domínio. */
-const TmdbFilmeSchema = z.object({
+/** TMDB response: external content, therefore validated before it enters the domain. */
+const TmdbFilmSchema = z.object({
   id: z.number().int(),
   title: z.string(),
   original_title: z.string().default(''),
@@ -44,75 +44,75 @@ const TmdbFilmeSchema = z.object({
     .optional(),
 });
 
-const TmdbBuscaSchema = z.object({
+const TmdbSearchSchema = z.object({
   results: z.array(z.object({ id: z.number().int(), title: z.string() })).default([]),
 });
 
-/** Há credencial do TMDB neste ambiente? Quem chama decide o fallback. */
-export function temCredencialTmdb(): boolean {
+/** Is there a TMDB credential in this environment? The caller decides the fallback. */
+export function hasTmdbCredential(): boolean {
   return env.TMDB_ACCESS_TOKEN.length > 0;
 }
 
 /**
- * Busca a ficha factual de um filme no TMDB.
+ * Fetches the factual record of a film from TMDB.
  *
- * @throws {ProviderIndisponivelError} quando não há credencial, a rede falha, ou
- *   a resposta não tem o formato esperado.
+ * @throws {ProviderUnavailableError} when there is no credential, the network
+ *   fails, or the response does not have the expected shape.
  */
-export async function buscarFilmeNoTmdb(
+export async function fetchFilmFromTmdb(
   tmdbId: number,
   signal?: AbortSignal,
-): Promise<FilmeFactual> {
+): Promise<FactualFilm> {
   const url = new URL(`${TMDB_BASE_URL}/movie/${String(tmdbId)}`);
   url.searchParams.set('language', env.TMDB_LANGUAGE);
   url.searchParams.set('append_to_response', 'credits');
 
-  const cru = await requisitarTmdb(url, signal);
-  const resultado = TmdbFilmeSchema.safeParse(cru);
+  const raw = await requestTmdb(url, signal);
+  const result = TmdbFilmSchema.safeParse(raw);
 
-  if (!resultado.success) {
-    throw new ProviderIndisponivelError(
+  if (!result.success) {
+    throw new ProviderUnavailableError(
       'TMDB',
-      `resposta inesperada para o filme ${String(tmdbId)}`,
+      `unexpected response for film ${String(tmdbId)}`,
     );
   }
 
-  return normalizar(resultado.data);
+  return normalize(result.data);
 }
 
 /**
- * Procura filmes por título e devolve os ids do TMDB, do mais ao menos relevante.
+ * Searches films by title and returns TMDB ids, most to least relevant.
  *
- * @throws {ProviderIndisponivelError} nas mesmas condições de `buscarFilmeNoTmdb`.
+ * @throws {ProviderUnavailableError} under the same conditions as `fetchFilmFromTmdb`.
  */
-export async function procurarIdsNoTmdb(
-  titulo: string,
+export async function searchTmdbIds(
+  title: string,
   signal?: AbortSignal,
 ): Promise<readonly number[]> {
   const url = new URL(`${TMDB_BASE_URL}/search/movie`);
-  url.searchParams.set('query', titulo);
+  url.searchParams.set('query', title);
   url.searchParams.set('language', env.TMDB_LANGUAGE);
 
-  const cru = await requisitarTmdb(url, signal);
-  const resultado = TmdbBuscaSchema.safeParse(cru);
+  const raw = await requestTmdb(url, signal);
+  const result = TmdbSearchSchema.safeParse(raw);
 
-  if (!resultado.success) {
-    throw new ProviderIndisponivelError('TMDB', `resposta inesperada ao procurar "${titulo}"`);
+  if (!result.success) {
+    throw new ProviderUnavailableError('TMDB', `unexpected response searching for "${title}"`);
   }
 
-  return resultado.data.results.map((filme) => filme.id);
+  return result.data.results.map((film) => film.id);
 }
 
-async function requisitarTmdb(url: URL, signal?: AbortSignal): Promise<unknown> {
-  if (!temCredencialTmdb()) {
-    throw new ProviderIndisponivelError('TMDB', 'TMDB_ACCESS_TOKEN não configurado');
+async function requestTmdb(url: URL, signal?: AbortSignal): Promise<unknown> {
+  if (!hasTmdbCredential()) {
+    throw new ProviderUnavailableError('TMDB', 'TMDB_ACCESS_TOKEN is not configured');
   }
 
-  let resposta: Response;
+  let response: Response;
 
   try {
-    resposta = await fetch(url, {
-      // Ficha técnica é consulta factual ao vivo: nunca servida de cache do Next.
+    response = await fetch(url, {
+      // A technical record is a live factual lookup: never served from Next's cache.
       cache: 'no-store',
       headers: {
         Authorization: `Bearer ${env.TMDB_ACCESS_TOKEN}`,
@@ -121,37 +121,35 @@ async function requisitarTmdb(url: URL, signal?: AbortSignal): Promise<unknown> 
       signal: signal ?? null,
     });
   } catch (e) {
-    throw new ProviderIndisponivelError('TMDB', 'falha de rede', { cause: e });
+    throw new ProviderUnavailableError('TMDB', 'network failure', { cause: e });
   }
 
-  if (!resposta.ok) {
-    throw new ProviderIndisponivelError('TMDB', `HTTP ${String(resposta.status)}`);
+  if (!response.ok) {
+    throw new ProviderUnavailableError('TMDB', `HTTP ${String(response.status)}`);
   }
 
-  return resposta.json();
+  return response.json();
 }
 
-function normalizar(filme: z.infer<typeof TmdbFilmeSchema>): FilmeFactual {
-  const diretor = filme.credits?.crew.find((membro) => membro.job === 'Director')?.name ?? null;
+function normalize(film: z.infer<typeof TmdbFilmSchema>): FactualFilm {
+  const director = film.credits?.crew.find((member) => member.job === 'Director')?.name ?? null;
 
-  const pais = filme.production_countries[0]?.name ?? filme.origin_country[0] ?? null;
-
-  const ano = extrairAno(filme.release_date);
+  const country = film.production_countries[0]?.name ?? film.origin_country[0] ?? null;
 
   return {
-    tmdbId: filme.id,
-    titulo: filme.title,
-    tituloOriginal: filme.original_title.length > 0 ? filme.original_title : null,
-    ano,
-    diretor,
-    pais,
-    sinopseFactual: filme.overview.length > 0 ? filme.overview : null,
-    posterPath: filme.poster_path,
+    tmdbId: film.id,
+    title: film.title,
+    originalTitle: film.original_title.length > 0 ? film.original_title : null,
+    year: extractYear(film.release_date),
+    director,
+    country,
+    factualSynopsis: film.overview.length > 0 ? film.overview : null,
+    posterPath: film.poster_path,
   };
 }
 
-function extrairAno(releaseDate: string): number | null {
-  const ano = Number.parseInt(releaseDate.slice(0, 4), 10);
+function extractYear(releaseDate: string): number | null {
+  const year = Number.parseInt(releaseDate.slice(0, 4), 10);
 
-  return Number.isNaN(ano) ? null : ano;
+  return Number.isNaN(year) ? null : year;
 }

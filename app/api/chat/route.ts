@@ -3,84 +3,84 @@ import 'server-only';
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 
-import { SessaoNaoEncontradaError, descreverErro } from '@/lib/app-error.util';
-import { exigirCuradora } from '@/server/auth.service';
+import { SessionNotFoundError, describeError } from '@/lib/app-error.util';
+import { requireCurator } from '@/server/auth.service';
 import { db } from '@/server/db.service';
-import { conversarComOIndicador } from '@/server/indicador/orquestrador.service';
-import { responderErro } from '@/server/resposta-http.util';
+import { respondError } from '@/server/http-response.util';
+import { converseWithIndicador } from '@/server/indicator/orchestrator.service';
 
-import type { EventoDoIndicador } from '@/server/indicador/orquestrador.service';
+import type { IndicadorEvent } from '@/server/indicator/orchestrator.service';
 
-const ConversarSchema = z.object({
-  sessaoId: z.uuid(),
-  mensagem: z.string().trim().min(1).max(8000),
+const ConverseSchema = z.object({
+  sessionId: z.uuid(),
+  message: z.string().trim().min(1).max(8000),
 });
 
 /**
- * Um turno de conversa, transmitido como SSE.
+ * One conversation turn, streamed as SSE.
  *
- * Streaming aqui não é enfeite: o Indicador consulta o acervo antes de
- * responder, e sem o texto chegando aos poucos a curadora fica olhando para uma
- * tela parada por dezenas de segundos sem saber se algo está acontecendo.
+ * Streaming is not decoration here: the Indicador consults the archive before
+ * answering, and without text arriving progressively the curator stares at a
+ * frozen screen for tens of seconds with no sign anything is happening.
  */
 export async function POST(request: Request): Promise<Response> {
   try {
-    const curadora = await exigirCuradora();
-    const { sessaoId, mensagem } = ConversarSchema.parse(await request.json());
+    const curator = await requireCurator();
+    const { sessionId, message } = ConverseSchema.parse(await request.json());
 
-    await exigirSessaoDaCuradora(sessaoId, curadora);
+    await requireOwnSession(sessionId, curator);
 
-    return transmitir(conversarComOIndicador(sessaoId, mensagem, request.signal));
+    return stream(converseWithIndicador(sessionId, message, request.signal));
   } catch (e) {
-    return responderErro(e);
+    return respondError(e);
   }
 }
 
-/** Uma curadora não lê nem escreve na sessão da outra. */
-async function exigirSessaoDaCuradora(sessaoId: string, curadora: string): Promise<void> {
-  const sessao = await db.sessao.findUnique({
-    where: { id: sessaoId },
-    select: { curador: true },
+/** One curator neither reads nor writes in the other's session. */
+async function requireOwnSession(sessionId: string, curator: string): Promise<void> {
+  const session = await db.session.findUnique({
+    where: { id: sessionId },
+    select: { curator: true },
   });
 
-  if (sessao === null || sessao.curador !== curadora) {
-    // Mesma resposta para "não existe" e "não é sua": não revela a diferença.
-    throw new SessaoNaoEncontradaError(sessaoId);
+  if (session === null || session.curator !== curator) {
+    // Same answer for "does not exist" and "is not yours": does not reveal which.
+    throw new SessionNotFoundError(sessionId);
   }
 }
 
-function transmitir(eventos: AsyncGenerator<EventoDoIndicador>): Response {
-  const codificador = new TextEncoder();
+function stream(events: AsyncGenerator<IndicadorEvent>): Response {
+  const encoder = new TextEncoder();
 
-  const corpo = new ReadableStream<Uint8Array>({
-    async start(controlador) {
+  const body = new ReadableStream<Uint8Array>({
+    async start(controller) {
       try {
-        for await (const evento of eventos) {
-          controlador.enqueue(codificador.encode(`data: ${JSON.stringify(evento)}\n\n`));
+        for await (const event of events) {
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify(event)}\n\n`));
         }
       } catch (e) {
-        console.error(`Stream do chat interrompido: ${descreverErro(e)}`);
+        console.error(`Chat stream interrupted: ${describeError(e)}`);
 
-        const falha: EventoDoIndicador = {
-          tipo: 'erro',
-          codigo: 'stream_interrompido',
-          mensagem: 'A conversa foi interrompida. Recarregue a página.',
+        const failure: IndicadorEvent = {
+          kind: 'error',
+          code: 'stream_interrupted',
+          message: 'A conversa foi interrompida. Recarregue a página.',
         };
 
-        controlador.enqueue(codificador.encode(`data: ${JSON.stringify(falha)}\n\n`));
+        controller.enqueue(encoder.encode(`data: ${JSON.stringify(failure)}\n\n`));
       } finally {
-        controlador.close();
+        controller.close();
       }
     },
   });
 
-  return new NextResponse(corpo, {
+  return new NextResponse(body, {
     status: 200,
     headers: {
       'content-type': 'text/event-stream; charset=utf-8',
       'cache-control': 'no-store',
       connection: 'keep-alive',
-      // O buffer de proxies quebra SSE; este cabeçalho desliga o do nginx.
+      // Proxy buffering breaks SSE; this header turns nginx's off.
       'x-accel-buffering': 'no',
     },
   });

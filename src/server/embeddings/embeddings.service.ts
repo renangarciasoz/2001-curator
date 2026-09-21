@@ -2,45 +2,45 @@ import 'server-only';
 
 import { env } from '../env.config';
 
-import { criarProviderLocal } from './local.service';
-import { criarProviderOpenai } from './openai.service';
-import { criarProviderVoyage } from './voyage.service';
+import { createLocalProvider } from './local.service';
+import { createOpenaiProvider } from './openai.service';
+import { createVoyageProvider } from './voyage.service';
 
 /**
- * Um texto indexado é um documento; um pedido de busca é uma consulta. Vários
- * providers pedem essa distinção e retornam vetores melhores quando ela é dada.
+ * Indexed text is a document; a search request is a query. Several providers
+ * ask for that distinction and return better vectors when it is given.
  */
-export type TipoDeTexto = 'documento' | 'consulta';
+export type TextKind = 'document' | 'query';
 
-export type ProviderDeEmbeddings = {
-  /** Identificador curto do provider, guardado junto do vetor para rastrear origem. */
-  readonly nome: string;
-  readonly modelo: string;
-  readonly dimensoes: number;
-  gerar(
-    textos: readonly string[],
-    tipo: TipoDeTexto,
+export type EmbeddingsProvider = {
+  /** Short provider id, stored alongside the vector to trace its origin. */
+  readonly name: string;
+  readonly model: string;
+  readonly dimensions: number;
+  generate(
+    texts: readonly string[],
+    kind: TextKind,
     signal?: AbortSignal,
   ): Promise<readonly (readonly number[])[]>;
 };
 
 /**
- * Escolhe o provider de embeddings declarado em `EMBEDDINGS_PROVIDER`.
+ * Picks the embeddings provider declared in `EMBEDDINGS_PROVIDER`.
  *
- * O provider `local` não faz rede e serve só para o projeto rodar sem chave —
- * a qualidade da busca semântica é muito inferior à de um modelo de verdade.
+ * The `local` provider does no network calls and exists only so the project
+ * runs without a key — its semantic search quality is far below a real model's.
  */
-export function obterProviderDeEmbeddings(): ProviderDeEmbeddings {
+export function getEmbeddingsProvider(): EmbeddingsProvider {
   switch (env.EMBEDDINGS_PROVIDER) {
     case 'voyage':
-      return criarProviderVoyage();
+      return createVoyageProvider();
     case 'openai':
-      return criarProviderOpenai();
+      return createOpenaiProvider();
     case 'local':
-      return criarProviderLocal();
+      return createLocalProvider();
     default: {
-      const _exaustivo: never = env.EMBEDDINGS_PROVIDER;
-      throw new Error(`provider de embeddings não tratado: ${_exaustivo as string}`);
+      const exhaustive: never = env.EMBEDDINGS_PROVIDER;
+      throw new Error(`unhandled embeddings provider: ${exhaustive as string}`);
     }
   }
 }

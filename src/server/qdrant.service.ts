@@ -2,82 +2,83 @@ import 'server-only';
 
 import { QdrantClient } from '@qdrant/js-client-rest';
 
-import { AppError, ProviderIndisponivelError, descreverErro } from '@/lib/app-error.util';
+import { AppError, ProviderUnavailableError, describeError } from '@/lib/app-error.util';
 
 import { env } from './env.config';
 
-/** O que fica no Qdrant além do vetor: só o suficiente para filtrar antes do banco. */
-export type PayloadDoFilme = {
-  titulo: string;
-  ano: number | null;
-  categoria_acervo: string | null;
-  registro_comercial: string | null;
-  tom_emocional: string | null;
-  /** Qual provider gerou este vetor. Vetores de providers diferentes não se comparam. */
+/** What lives in Qdrant besides the vector: only enough to filter before the database. */
+export type FilmPayload = {
+  title: string;
+  year: number | null;
+  archive_category: string | null;
+  commercial_register: string | null;
+  emotional_tone: string | null;
+  /** Which provider produced this vector. Vectors from different providers do not compare. */
   provider: string;
-  modelo: string;
+  model: string;
 };
 
-export type PontoDeFilme = {
-  filmeId: string;
-  vetor: readonly number[];
-  payload: PayloadDoFilme;
+export type FilmPoint = {
+  filmId: string;
+  vector: readonly number[];
+  payload: FilmPayload;
 };
 
-export type FiltroDeBusca = {
-  categoriaAcervo?: string;
-  registroComercial?: string;
-  anoMinimo?: number;
-  anoMaximo?: number;
+export type SearchFilter = {
+  archiveCategory?: string;
+  commercialRegister?: string;
+  minYear?: number;
+  maxYear?: number;
 };
 
-export type CandidatoDaBusca = {
-  filmeId: string;
-  proximidade: number;
+export type SearchCandidate = {
+  filmId: string;
+  closeness: number;
 };
 
-/** Divergência entre o índice existente e o provider configurado agora. */
-export class IndiceIncompativelError extends AppError {
-  constructor(detalhe: string) {
-    super('indice_incompativel', detalhe);
+/** The existing index and the currently configured provider disagree. */
+export class IncompatibleIndexError extends AppError {
+  constructor(detail: string) {
+    super('incompatible_index', detail);
   }
 }
 
-let clienteCache: QdrantClient | null = null;
+let cachedClient: QdrantClient | null = null;
 
-function cliente(): QdrantClient {
-  clienteCache ??= new QdrantClient(
+function client(): QdrantClient {
+  cachedClient ??= new QdrantClient(
     env.QDRANT_API_KEY.length > 0
       ? { url: env.QDRANT_URL, apiKey: env.QDRANT_API_KEY }
       : { url: env.QDRANT_URL },
   );
 
-  return clienteCache;
+  return cachedClient;
 }
 
 /**
- * Garante que a coleção existe com o tamanho de vetor deste provider.
+ * Ensures the collection exists with this provider's vector size.
  *
- * Se já existir com outro tamanho, falha em vez de recriar: apagar o índice do
- * acervo em silêncio, no meio de uma troca de provider, é pior do que parar.
- * Reindexar de propósito é `pnpm indexar:embeddings -- --recriar`.
+ * If it already exists with a different size, this fails rather than
+ * re-creating it: silently dropping the archive index in the middle of a
+ * provider switch is worse than stopping. Deliberate re-indexing is
+ * `pnpm index:embeddings -- --recreate`.
  *
- * @throws {IndiceIncompativelError} quando o tamanho do vetor não bate.
+ * @throws {IncompatibleIndexError} when the vector size does not match.
  */
-export async function garantirColecao(dimensoes: number, recriar = false): Promise<void> {
-  const nome = env.QDRANT_COLLECTION;
-  const existente = await descreverColecao(nome);
+export async function ensureCollection(dimensions: number, recreate = false): Promise<void> {
+  const name = env.QDRANT_COLLECTION;
+  const existing = await describeCollection(name);
 
-  if (existente !== null && recriar) {
-    await cliente().deleteCollection(nome);
+  if (existing !== null && recreate) {
+    await client().deleteCollection(name);
   }
 
-  if (existente !== null && !recriar) {
-    if (existente.dimensoes !== dimensoes) {
-      throw new IndiceIncompativelError(
-        `a coleção "${nome}" foi criada com vetores de ${String(existente.dimensoes)} dimensões ` +
-          `e o provider atual gera ${String(dimensoes)}. ` +
-          'Rode `pnpm indexar:embeddings -- --recriar` para reindexar o acervo do zero.',
+  if (existing !== null && !recreate) {
+    if (existing.dimensions !== dimensions) {
+      throw new IncompatibleIndexError(
+        `collection "${name}" was created with ${String(existing.dimensions)}-dimension vectors ` +
+          `and the current provider produces ${String(dimensions)}. ` +
+          'Run `pnpm index:embeddings -- --recreate` to rebuild the archive index.',
       );
     }
 
@@ -85,119 +86,116 @@ export async function garantirColecao(dimensoes: number, recriar = false): Promi
   }
 
   try {
-    await cliente().createCollection(nome, {
-      vectors: { size: dimensoes, distance: 'Cosine' },
+    await client().createCollection(name, {
+      vectors: { size: dimensions, distance: 'Cosine' },
     });
   } catch (e) {
-    throw new ProviderIndisponivelError('qdrant', `não foi possível criar "${nome}"`, {
-      cause: e,
-    });
+    throw new ProviderUnavailableError('qdrant', `could not create "${name}"`, { cause: e });
   }
 }
 
-/** Grava (ou regrava) os vetores de um lote de filmes. */
-export async function indexarFilmes(pontos: readonly PontoDeFilme[]): Promise<void> {
-  if (pontos.length === 0) {
+/** Writes (or rewrites) the vectors of a batch of films. */
+export async function indexFilms(points: readonly FilmPoint[]): Promise<void> {
+  if (points.length === 0) {
     return;
   }
 
   try {
-    await cliente().upsert(env.QDRANT_COLLECTION, {
+    await client().upsert(env.QDRANT_COLLECTION, {
       wait: true,
-      points: pontos.map((ponto) => ({
-        id: ponto.filmeId,
-        vector: [...ponto.vetor],
-        payload: { ...ponto.payload },
+      points: points.map((point) => ({
+        id: point.filmId,
+        vector: [...point.vector],
+        payload: { ...point.payload },
       })),
     });
   } catch (e) {
-    throw new ProviderIndisponivelError('qdrant', `falha ao indexar: ${descreverErro(e)}`, {
+    throw new ProviderUnavailableError('qdrant', `indexing failed: ${describeError(e)}`, {
       cause: e,
     });
   }
 }
 
 /**
- * Busca por proximidade de significado e devolve só os ids.
+ * Searches by closeness of meaning and returns ids only.
  *
- * Os metadados curatoriais vêm do Postgres depois, não do payload: o banco é a
- * fonte da verdade, e um payload defasado faria a IA justificar uma indicação
- * com o estudo errado.
+ * Curatorial metadata comes from Postgres afterwards, not from the payload: the
+ * database is the source of truth, and a stale payload would make the AI justify
+ * a recommendation with the wrong study.
  */
-export async function buscarPorVetor(
-  vetor: readonly number[],
-  limite: number,
-  filtro?: FiltroDeBusca,
-): Promise<readonly CandidatoDaBusca[]> {
-  const condicoes = montarCondicoes(filtro);
+export async function searchByVector(
+  vector: readonly number[],
+  limit: number,
+  filter?: SearchFilter,
+): Promise<readonly SearchCandidate[]> {
+  const conditions = buildConditions(filter);
 
   try {
-    const resposta = await cliente().query(env.QDRANT_COLLECTION, {
-      query: [...vetor],
-      limit: limite,
+    const response = await client().query(env.QDRANT_COLLECTION, {
+      query: [...vector],
+      limit,
       with_payload: false,
-      ...(condicoes.length > 0 ? { filter: { must: condicoes } } : {}),
+      ...(conditions.length > 0 ? { filter: { must: conditions } } : {}),
     });
 
-
-    return resposta.points.map((ponto) => ({
-      filmeId: String(ponto.id),
-      proximidade: ponto.score,
+    return response.points.map((point) => ({
+      filmId: String(point.id),
+      closeness: point.score,
     }));
   } catch (e) {
-    throw new ProviderIndisponivelError('qdrant', `falha na busca: ${descreverErro(e)}`, {
+    throw new ProviderUnavailableError('qdrant', `search failed: ${describeError(e)}`, {
       cause: e,
     });
   }
 }
 
 /**
- * Tamanho do vetor da coleção, ou `null` se ela não existe.
+ * The collection's vector size, or `null` if it does not exist.
  *
- * O campo `vectors` da resposta pode ser um único conjunto de parâmetros ou um
- * mapa de vetores nomeados. Esta coleção usa o formato simples; em vez de
- * depender da forma exata do tipo do cliente, a leitura é defensiva.
+ * The response's `vectors` field can be a single set of parameters or a map of
+ * named vectors. This collection uses the simple form; rather than depending on
+ * the exact shape of the client's type, the read is defensive.
  */
-async function descreverColecao(nome: string): Promise<{ dimensoes: number } | null> {
+async function describeCollection(name: string): Promise<{ dimensions: number } | null> {
   try {
-    const info = await cliente().getCollection(nome);
-    const vetores: unknown = info.config.params.vectors;
+    const info = await client().getCollection(name);
+    const vectors: unknown = info.config.params.vectors;
 
-    if (typeof vetores !== 'object' || vetores === null) {
+    if (typeof vectors !== 'object' || vectors === null) {
       return null;
     }
 
-    const tamanho: unknown = Reflect.get(vetores, 'size');
+    const size: unknown = Reflect.get(vectors, 'size');
 
-    return typeof tamanho === 'number' ? { dimensoes: tamanho } : null;
+    return typeof size === 'number' ? { dimensions: size } : null;
   } catch {
-    // O cliente lança quando a coleção não existe; ausência não é erro aqui.
+    // The client throws when the collection does not exist; absence is not an error here.
     return null;
   }
 }
 
-function montarCondicoes(filtro?: FiltroDeBusca) {
-  if (filtro === undefined) {
+function buildConditions(filter?: SearchFilter) {
+  if (filter === undefined) {
     return [];
   }
 
-  const candidatas = [
-    filtro.categoriaAcervo !== undefined
-      ? { key: 'categoria_acervo', match: { value: filtro.categoriaAcervo } }
+  const candidates = [
+    filter.archiveCategory !== undefined
+      ? { key: 'archive_category', match: { value: filter.archiveCategory } }
       : null,
-    filtro.registroComercial !== undefined
-      ? { key: 'registro_comercial', match: { value: filtro.registroComercial } }
+    filter.commercialRegister !== undefined
+      ? { key: 'commercial_register', match: { value: filter.commercialRegister } }
       : null,
-    filtro.anoMinimo !== undefined || filtro.anoMaximo !== undefined
+    filter.minYear !== undefined || filter.maxYear !== undefined
       ? {
-          key: 'ano',
+          key: 'year',
           range: {
-            ...(filtro.anoMinimo !== undefined ? { gte: filtro.anoMinimo } : {}),
-            ...(filtro.anoMaximo !== undefined ? { lte: filtro.anoMaximo } : {}),
+            ...(filter.minYear !== undefined ? { gte: filter.minYear } : {}),
+            ...(filter.maxYear !== undefined ? { lte: filter.maxYear } : {}),
           },
         }
       : null,
   ];
 
-  return candidatas.filter((condicao) => condicao !== null);
+  return candidates.filter((condition) => condition !== null);
 }

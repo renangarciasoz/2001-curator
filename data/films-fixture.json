@@ -1,0 +1,117 @@
+{
+  "_readme": "Development fixture. These records were hand-written so the project runs without TMDB_ACCESS_TOKEN; they did NOT come from TMDB and therefore enter the database with factual_source = DEV_FIXTURE. They carry no tmdb_id, precisely so as not to assert an identity that was never verified against the public database. With a token configured, `pnpm ingest:tmdb` fetches the real records and overwrites the factual layer only. Field values stay in Portuguese: these are Brazilian release titles and Portuguese synopses, which is the language of the product.",
+  "films": [
+    {
+      "title": "2001: Uma Odisseia no Espaço",
+      "originalTitle": "2001: A Space Odyssey",
+      "year": 1968,
+      "director": "Stanley Kubrick",
+      "country": "Reino Unido",
+      "factualSynopsis": "Da alvorada do homem a uma missão tripulada a Júpiter, um monolito negro reaparece nos momentos de salto da espécie. A bordo da Discovery, o computador HAL 9000 passa a agir contra a tripulação."
+    },
+    {
+      "title": "Os Sete Samurais",
+      "originalTitle": "七人の侍",
+      "year": 1954,
+      "director": "Akira Kurosawa",
+      "country": "Japão",
+      "factualSynopsis": "Uma aldeia de camponeses, saqueada todo ano por bandidos, contrata sete samurais sem senhor para defendê-la. A preparação da defesa revela o abismo e a aliança entre as duas castas."
+    },
+    {
+      "title": "Rashomon",
+      "originalTitle": "羅生門",
+      "year": 1950,
+      "director": "Akira Kurosawa",
+      "country": "Japão",
+      "factualSynopsis": "Um samurai é morto e sua mulher violentada numa floresta. Quatro testemunhas contam quatro versões incompatíveis do mesmo episódio, e nenhuma delas se deixa confirmar."
+    },
+    {
+      "title": "Era uma Vez em Tóquio",
+      "originalTitle": "東京物語",
+      "year": 1953,
+      "director": "Yasujiro Ozu",
+      "country": "Japão",
+      "factualSynopsis": "Um casal de idosos viaja ao encontro dos filhos adultos em Tóquio e descobre que já não há lugar para eles na vida que ajudaram a construir."
+    },
+    {
+      "title": "A Doce Vida",
+      "originalTitle": "La dolce vita",
+      "year": 1960,
+      "director": "Federico Fellini",
+      "country": "Itália",
+      "factualSynopsis": "Um jornalista de colunas sociais atravessa sete dias e sete noites da Roma do boom econômico, entre festas, celebridades e um vazio que ele não consegue nomear."
+    },
+    {
+      "title": "Ladrões de Bicicleta",
+      "originalTitle": "Ladri di biciclette",
+      "year": 1948,
+      "director": "Vittorio De Sica",
+      "country": "Itália",
+      "factualSynopsis": "Na Roma do pós-guerra, um homem consegue enfim um emprego que exige uma bicicleta. A bicicleta é roubada no primeiro dia, e ele sai com o filho pequeno para procurá-la pela cidade."
+    },
+    {
+      "title": "Stalker",
+      "originalTitle": "Сталкер",
+      "year": 1979,
+      "director": "Andrei Tarkovski",
+      "country": "União Soviética",
+      "factualSynopsis": "Um guia conduz um escritor e um cientista através da Zona, território interditado onde existiria um quarto que realiza o desejo mais profundo de quem entra nele."
+    },
+    {
+      "title": "Amor à Flor da Pele",
+      "originalTitle": "花樣年華",
+      "year": 2000,
+      "director": "Wong Kar-wai",
+      "country": "Hong Kong",
+      "factualSynopsis": "Hong Kong, 1962. Dois vizinhos descobrem que seus cônjuges têm um caso, e a cumplicidade entre eles cresce no espaço estreito do que decidem não fazer."
+    },
+    {
+      "title": "A Viagem de Chihiro",
+      "originalTitle": "千と千尋の神隠し",
+      "year": 2001,
+      "director": "Hayao Miyazaki",
+      "country": "Japão",
+      "factualSynopsis": "Uma menina de dez anos, a caminho da casa nova, entra por engano num mundo de espíritos onde seus pais viram porcos e ela precisa trabalhar numa casa de banhos para recuperá-los."
+    },
+    {
+      "title": "Central do Brasil",
+      "originalTitle": "Central do Brasil",
+      "year": 1998,
+      "director": "Walter Salles",
+      "country": "Brasil",
+      "factualSynopsis": "Uma ex-professora que escreve cartas para analfabetos na estação Central do Brasil acaba atravessando o país com um menino em busca do pai que ele nunca viu."
+    },
+    {
+      "title": "Cidade de Deus",
+      "originalTitle": "Cidade de Deus",
+      "year": 2002,
+      "director": "Fernando Meirelles e Kátia Lund",
+      "country": "Brasil",
+      "factualSynopsis": "Três décadas de um conjunto habitacional do Rio de Janeiro contadas por um morador que escolhe a fotografia enquanto os amigos de infância escolhem o tráfico."
+    },
+    {
+      "title": "Pulp Fiction: Tempo de Violência",
+      "originalTitle": "Pulp Fiction",
+      "year": 1994,
+      "director": "Quentin Tarantino",
+      "country": "Estados Unidos",
+      "factualSynopsis": "Dois matadores de aluguel, a mulher de um chefão, um boxeador que não aceita perder e um assalto a uma lanchonete se cruzam numa Los Angeles narrada fora de ordem."
+    },
+    {
+      "title": "Parasita",
+      "originalTitle": "기생충",
+      "year": 2019,
+      "director": "Bong Joon-ho",
+      "country": "Coreia do Sul",
+      "factualSynopsis": "Uma família pobre se emprega, um a um e sob identidades falsas, na casa de uma família rica de Seul. O arranjo funciona até encontrarem quem chegou antes deles."
+    },
+    {
+      "title": "De Volta para o Futuro",
+      "originalTitle": "Back to the Future",
+      "year": 1985,
+      "director": "Robert Zemeckis",
+      "country": "Estados Unidos",
+      "factualSynopsis": "Um adolescente é lançado a 1955 pela máquina do tempo de um cientista amigo, atrapalha o encontro dos próprios pais e precisa reconstruir o namoro deles para não desaparecer."
+    }
+  ]
+}

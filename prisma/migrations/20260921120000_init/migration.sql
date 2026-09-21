@@ -1,298 +1,298 @@
 -- CreateEnum
-CREATE TYPE "Curador" AS ENUM ('SONIA', 'MIRELLA', 'AMBAS', 'DEMO');
+CREATE TYPE "Curator" AS ENUM ('SONIA', 'MIRELLA', 'BOTH', 'DEMO');
 
 -- CreateEnum
-CREATE TYPE "RegistroComercial" AS ENUM ('COMERCIAL', 'CABECA', 'AMBOS');
+CREATE TYPE "CommercialRegister" AS ENUM ('COMMERCIAL', 'ARTHOUSE', 'BOTH');
 
 -- CreateEnum
-CREATE TYPE "CategoriaAcervo" AS ENUM ('HISTORIA_DA_EMPRESA', 'METODO_DE_TREINAMENTO', 'CURADORIA', 'CLIPPING', 'ENTREVISTAS', 'REVISTAS_2001', 'CURSOS', 'LISTA_OMO', 'ATENDIMENTO_E_CASOS_REAIS', 'TEXTOS_DA_SONIA', 'PREMIACOES', 'MARKETING_E_EVENTOS');
+CREATE TYPE "ArchiveCategory" AS ENUM ('COMPANY_HISTORY', 'TRAINING_METHOD', 'CURATION', 'CLIPPING', 'INTERVIEWS', 'MAGAZINES_2001', 'COURSES', 'OMO_LIST', 'SERVICE_AND_REAL_CASES', 'SONIA_TEXTS', 'AWARDS', 'MARKETING_AND_EVENTS');
 
 -- CreateEnum
-CREATE TYPE "TipoConexao" AS ENUM ('PORTA_DE_ENTRADA', 'SE_GOSTOU_DE', 'ANTES_DE_VER', 'LANCAMENTO_PARA_ACERVO', 'ACERVO_PARA_LANCAMENTO', 'OUTRO');
+CREATE TYPE "ConnectionType" AS ENUM ('ENTRY_POINT', 'IF_YOU_LIKED', 'BEFORE_WATCHING', 'RELEASE_TO_ARCHIVE', 'ARCHIVE_TO_RELEASE', 'OTHER');
 
 -- CreateEnum
-CREATE TYPE "TipoLista" AS ENUM ('TOP_DO_MES', 'TEMATICO', 'EVENTO', 'OMO_HISTORICA');
+CREATE TYPE "EditorialListType" AS ENUM ('MONTHLY_TOP', 'THEMATIC', 'EVENT', 'HISTORIC_OMO');
 
 -- CreateEnum
-CREATE TYPE "Consenso" AS ENUM ('ACORDO', 'DIVERGENCIA', 'SO_UMA_AVALIOU');
+CREATE TYPE "Consensus" AS ENUM ('AGREEMENT', 'DISAGREEMENT', 'ONLY_ONE_REVIEWED');
 
 -- CreateEnum
-CREATE TYPE "Qualidade" AS ENUM ('ABSORVE', 'DESCARTA', 'REVISAR');
+CREATE TYPE "Quality" AS ENUM ('ABSORB', 'DISCARD', 'REVIEW');
 
 -- CreateEnum
-CREATE TYPE "Confianca" AS ENUM ('ALTA', 'NORMAL');
+CREATE TYPE "Confidence" AS ENUM ('HIGH', 'NORMAL');
 
 -- CreateEnum
-CREATE TYPE "FonteFactual" AS ENUM ('TMDB', 'FIXTURE_DEV');
+CREATE TYPE "FactualSource" AS ENUM ('TMDB', 'DEV_FIXTURE');
 
 -- CreateEnum
-CREATE TYPE "FonteCuratorial" AS ENUM ('CURADORIA_2001', 'DEMO');
+CREATE TYPE "CuratorialSource" AS ENUM ('CURATION_2001', 'DEMO');
 
 -- CreateEnum
-CREATE TYPE "PapelNaConversa" AS ENUM ('RECOMENDADO_PELA_IA', 'CORRIGIDO_PELA_CURADORA');
+CREATE TYPE "ConversationRole" AS ENUM ('RECOMMENDED_BY_AI', 'CORRECTED_BY_CURATOR');
 
 -- CreateEnum
-CREATE TYPE "AutorDaMensagem" AS ENUM ('CURADORA', 'INDICADOR');
+CREATE TYPE "MessageAuthor" AS ENUM ('CURATOR', 'INDICADOR');
 
 -- CreateTable
-CREATE TABLE "filme" (
+CREATE TABLE "film" (
     "id" UUID NOT NULL,
     "tmdb_id" INTEGER,
-    "titulo" TEXT NOT NULL,
-    "titulo_original" TEXT,
-    "ano" INTEGER,
-    "diretor" TEXT,
-    "pais" TEXT,
-    "sinopse_factual" TEXT,
+    "title" TEXT NOT NULL,
+    "original_title" TEXT,
+    "year" INTEGER,
+    "director" TEXT,
+    "country" TEXT,
+    "factual_synopsis" TEXT,
     "poster_path" TEXT,
-    "tom_emocional" TEXT,
-    "o_que_provoca" TEXT,
-    "registro_comercial" "RegistroComercial",
-    "notas_curatoriais" TEXT,
-    "contexto_historico" TEXT,
-    "categoria_acervo" "CategoriaAcervo",
-    "avaliado_por" "Curador"[],
-    "fonte_factual" "FonteFactual" NOT NULL,
-    "fonte_curatorial" "FonteCuratorial",
-    "indexado_em" TIMESTAMPTZ(6),
+    "emotional_tone" TEXT,
+    "what_it_provokes" TEXT,
+    "commercial_register" "CommercialRegister",
+    "curatorial_notes" TEXT,
+    "historical_context" TEXT,
+    "archive_category" "ArchiveCategory",
+    "reviewed_by" "Curator"[],
+    "factual_source" "FactualSource" NOT NULL,
+    "curatorial_source" "CuratorialSource",
+    "indexed_at" TIMESTAMPTZ(6),
     "created_at" TIMESTAMPTZ(6) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMPTZ(6) NOT NULL,
 
-    CONSTRAINT "filme_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "film_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
-CREATE TABLE "conexao" (
+CREATE TABLE "connection" (
     "id" UUID NOT NULL,
-    "filme_origem_id" UUID NOT NULL,
-    "filme_destino_id" UUID NOT NULL,
-    "tipo" "TipoConexao" NOT NULL,
-    "ponte_por" TEXT NOT NULL,
-    "porque" TEXT NOT NULL,
-    "curador" "Curador" NOT NULL,
+    "source_film_id" UUID NOT NULL,
+    "target_film_id" UUID NOT NULL,
+    "type" "ConnectionType" NOT NULL,
+    "bridged_by" TEXT NOT NULL,
+    "why" TEXT NOT NULL,
+    "curator" "Curator" NOT NULL,
     "created_at" TIMESTAMPTZ(6) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
-    CONSTRAINT "conexao_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "connection_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
-CREATE TABLE "jornada" (
+CREATE TABLE "journey" (
     "id" UUID NOT NULL,
-    "titulo" TEXT NOT NULL,
-    "objetivo" TEXT NOT NULL,
-    "curador" "Curador" NOT NULL,
+    "title" TEXT NOT NULL,
+    "objective" TEXT NOT NULL,
+    "curator" "Curator" NOT NULL,
     "created_at" TIMESTAMPTZ(6) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
-    CONSTRAINT "jornada_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "journey_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
-CREATE TABLE "jornada_filme" (
-    "jornada_id" UUID NOT NULL,
-    "filme_id" UUID NOT NULL,
-    "ordem" INTEGER NOT NULL,
-    "nota_do_porque" TEXT NOT NULL,
+CREATE TABLE "journey_film" (
+    "journey_id" UUID NOT NULL,
+    "film_id" UUID NOT NULL,
+    "position" INTEGER NOT NULL,
+    "why_note" TEXT NOT NULL,
 
-    CONSTRAINT "jornada_filme_pkey" PRIMARY KEY ("jornada_id","filme_id")
+    CONSTRAINT "journey_film_pkey" PRIMARY KEY ("journey_id","film_id")
 );
 
 -- CreateTable
-CREATE TABLE "lista_editorial" (
+CREATE TABLE "editorial_list" (
     "id" UUID NOT NULL,
-    "titulo" TEXT NOT NULL,
-    "periodo" TEXT NOT NULL,
-    "tipo" "TipoLista" NOT NULL,
-    "curador" "Curador" NOT NULL,
-    "publicada_em" TIMESTAMPTZ(6) NOT NULL,
+    "title" TEXT NOT NULL,
+    "period" TEXT NOT NULL,
+    "type" "EditorialListType" NOT NULL,
+    "curator" "Curator" NOT NULL,
+    "published_at" TIMESTAMPTZ(6) NOT NULL,
     "created_at" TIMESTAMPTZ(6) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
-    CONSTRAINT "lista_editorial_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "editorial_list_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
-CREATE TABLE "lista_editorial_filme" (
-    "lista_id" UUID NOT NULL,
-    "filme_id" UUID NOT NULL,
-    "ordem" INTEGER NOT NULL,
-    "linha_de_curadoria" TEXT NOT NULL,
+CREATE TABLE "editorial_list_film" (
+    "list_id" UUID NOT NULL,
+    "film_id" UUID NOT NULL,
+    "position" INTEGER NOT NULL,
+    "curation_line" TEXT NOT NULL,
 
-    CONSTRAINT "lista_editorial_filme_pkey" PRIMARY KEY ("lista_id","filme_id")
+    CONSTRAINT "editorial_list_film_pkey" PRIMARY KEY ("list_id","film_id")
 );
 
 -- CreateTable
-CREATE TABLE "sessao" (
+CREATE TABLE "session" (
     "id" UUID NOT NULL,
-    "perfil_id" UUID,
-    "curador" "Curador" NOT NULL,
-    "titulo" TEXT,
-    "encerrada_em" TIMESTAMPTZ(6),
-    "created_at" TIMESTAMPTZ(6) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updated_at" TIMESTAMPTZ(6) NOT NULL,
-
-    CONSTRAINT "sessao_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
-CREATE TABLE "mensagem" (
-    "id" UUID NOT NULL,
-    "sessao_id" UUID NOT NULL,
-    "autor" "AutorDaMensagem" NOT NULL,
-    "blocos" JSONB NOT NULL,
-    "ordem" INTEGER NOT NULL,
-    "created_at" TIMESTAMPTZ(6) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-
-    CONSTRAINT "mensagem_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
-CREATE TABLE "conversa" (
-    "id" UUID NOT NULL,
-    "sessao_id" UUID,
-    "perfil_id" UUID,
-    "pedido_do_usuario" TEXT NOT NULL,
-    "perguntas_da_ia" JSONB NOT NULL,
-    "recomendacao_da_ia" TEXT NOT NULL,
-    "correcao" TEXT,
-    "porque_da_correcao" TEXT,
-    "avaliado_por" "Curador",
-    "nota_da_divergencia" TEXT,
-    "consenso" "Consenso",
-    "qualidade" "Qualidade",
-    "confianca" "Confianca",
+    "profile_id" UUID,
+    "curator" "Curator" NOT NULL,
+    "title" TEXT,
+    "ended_at" TIMESTAMPTZ(6),
     "created_at" TIMESTAMPTZ(6) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMPTZ(6) NOT NULL,
 
-    CONSTRAINT "conversa_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "session_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
-CREATE TABLE "conversa_filme" (
-    "conversa_id" UUID NOT NULL,
-    "filme_id" UUID NOT NULL,
-    "papel" "PapelNaConversa" NOT NULL,
-    "ordem" INTEGER NOT NULL,
-
-    CONSTRAINT "conversa_filme_pkey" PRIMARY KEY ("conversa_id","filme_id","papel")
-);
-
--- CreateTable
-CREATE TABLE "perfil" (
+CREATE TABLE "message" (
     "id" UUID NOT NULL,
-    "usuario_id" TEXT NOT NULL,
-    "gostos" TEXT[],
-    "evita" TEXT[],
-    "repertorio" TEXT,
-    "momento_de_vida" TEXT,
-    "nivel" TEXT NOT NULL DEFAULT 'padrao',
+    "session_id" UUID NOT NULL,
+    "author" "MessageAuthor" NOT NULL,
+    "blocks" JSONB NOT NULL,
+    "position" INTEGER NOT NULL,
+    "created_at" TIMESTAMPTZ(6) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "message_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "conversation" (
+    "id" UUID NOT NULL,
+    "session_id" UUID,
+    "profile_id" UUID,
+    "user_request" TEXT NOT NULL,
+    "ai_questions" JSONB NOT NULL,
+    "ai_recommendation" TEXT NOT NULL,
+    "correction" TEXT,
+    "correction_reason" TEXT,
+    "reviewed_by" "Curator",
+    "disagreement_note" TEXT,
+    "consensus" "Consensus",
+    "quality" "Quality",
+    "confidence" "Confidence",
     "created_at" TIMESTAMPTZ(6) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMPTZ(6) NOT NULL,
 
-    CONSTRAINT "perfil_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "conversation_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
-CREATE TABLE "perfil_filme_assistido" (
-    "perfil_id" UUID NOT NULL,
-    "filme_id" UUID NOT NULL,
-    "nota" TEXT,
-    "registrado_em" TIMESTAMPTZ(6) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+CREATE TABLE "conversation_film" (
+    "conversation_id" UUID NOT NULL,
+    "film_id" UUID NOT NULL,
+    "role" "ConversationRole" NOT NULL,
+    "position" INTEGER NOT NULL,
 
-    CONSTRAINT "perfil_filme_assistido_pkey" PRIMARY KEY ("perfil_id","filme_id")
+    CONSTRAINT "conversation_film_pkey" PRIMARY KEY ("conversation_id","film_id","role")
 );
 
 -- CreateTable
-CREATE TABLE "perfil_jornada" (
-    "perfil_id" UUID NOT NULL,
-    "jornada_id" UUID NOT NULL,
-    "iniciada_em" TIMESTAMPTZ(6) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "concluida_em" TIMESTAMPTZ(6),
+CREATE TABLE "profile" (
+    "id" UUID NOT NULL,
+    "user_id" TEXT NOT NULL,
+    "likes" TEXT[],
+    "avoids" TEXT[],
+    "repertoire" TEXT,
+    "life_moment" TEXT,
+    "tier" TEXT NOT NULL DEFAULT 'padrao',
+    "created_at" TIMESTAMPTZ(6) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMPTZ(6) NOT NULL,
 
-    CONSTRAINT "perfil_jornada_pkey" PRIMARY KEY ("perfil_id","jornada_id")
+    CONSTRAINT "profile_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "profile_watched_film" (
+    "profile_id" UUID NOT NULL,
+    "film_id" UUID NOT NULL,
+    "note" TEXT,
+    "recorded_at" TIMESTAMPTZ(6) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "profile_watched_film_pkey" PRIMARY KEY ("profile_id","film_id")
+);
+
+-- CreateTable
+CREATE TABLE "profile_journey" (
+    "profile_id" UUID NOT NULL,
+    "journey_id" UUID NOT NULL,
+    "started_at" TIMESTAMPTZ(6) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "completed_at" TIMESTAMPTZ(6),
+
+    CONSTRAINT "profile_journey_pkey" PRIMARY KEY ("profile_id","journey_id")
 );
 
 -- CreateIndex
-CREATE UNIQUE INDEX "filme_tmdb_id_key" ON "filme"("tmdb_id");
+CREATE UNIQUE INDEX "film_tmdb_id_key" ON "film"("tmdb_id");
 
 -- CreateIndex
-CREATE INDEX "filme_categoria_acervo_idx" ON "filme"("categoria_acervo");
+CREATE INDEX "film_archive_category_idx" ON "film"("archive_category");
 
 -- CreateIndex
-CREATE INDEX "filme_indexado_em_idx" ON "filme"("indexado_em");
+CREATE INDEX "film_indexed_at_idx" ON "film"("indexed_at");
 
 -- CreateIndex
-CREATE INDEX "conexao_filme_origem_id_idx" ON "conexao"("filme_origem_id");
+CREATE INDEX "connection_source_film_id_idx" ON "connection"("source_film_id");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "conexao_filme_origem_id_filme_destino_id_tipo_key" ON "conexao"("filme_origem_id", "filme_destino_id", "tipo");
+CREATE UNIQUE INDEX "connection_source_film_id_target_film_id_type_key" ON "connection"("source_film_id", "target_film_id", "type");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "jornada_filme_jornada_id_ordem_key" ON "jornada_filme"("jornada_id", "ordem");
+CREATE UNIQUE INDEX "journey_film_journey_id_position_key" ON "journey_film"("journey_id", "position");
 
 -- CreateIndex
-CREATE INDEX "lista_editorial_periodo_idx" ON "lista_editorial"("periodo");
+CREATE INDEX "editorial_list_period_idx" ON "editorial_list"("period");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "lista_editorial_filme_lista_id_ordem_key" ON "lista_editorial_filme"("lista_id", "ordem");
+CREATE UNIQUE INDEX "editorial_list_film_list_id_position_key" ON "editorial_list_film"("list_id", "position");
 
 -- CreateIndex
-CREATE INDEX "sessao_curador_idx" ON "sessao"("curador");
+CREATE INDEX "session_curator_idx" ON "session"("curator");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "mensagem_sessao_id_ordem_key" ON "mensagem"("sessao_id", "ordem");
+CREATE UNIQUE INDEX "message_session_id_position_key" ON "message"("session_id", "position");
 
 -- CreateIndex
-CREATE INDEX "conversa_qualidade_idx" ON "conversa"("qualidade");
+CREATE INDEX "conversation_quality_idx" ON "conversation"("quality");
 
 -- CreateIndex
-CREATE INDEX "conversa_consenso_idx" ON "conversa"("consenso");
+CREATE INDEX "conversation_consensus_idx" ON "conversation"("consensus");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "perfil_usuario_id_key" ON "perfil"("usuario_id");
+CREATE UNIQUE INDEX "profile_user_id_key" ON "profile"("user_id");
 
 -- AddForeignKey
-ALTER TABLE "conexao" ADD CONSTRAINT "conexao_filme_origem_id_fkey" FOREIGN KEY ("filme_origem_id") REFERENCES "filme"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "connection" ADD CONSTRAINT "connection_source_film_id_fkey" FOREIGN KEY ("source_film_id") REFERENCES "film"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "conexao" ADD CONSTRAINT "conexao_filme_destino_id_fkey" FOREIGN KEY ("filme_destino_id") REFERENCES "filme"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "connection" ADD CONSTRAINT "connection_target_film_id_fkey" FOREIGN KEY ("target_film_id") REFERENCES "film"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "jornada_filme" ADD CONSTRAINT "jornada_filme_jornada_id_fkey" FOREIGN KEY ("jornada_id") REFERENCES "jornada"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "journey_film" ADD CONSTRAINT "journey_film_journey_id_fkey" FOREIGN KEY ("journey_id") REFERENCES "journey"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "jornada_filme" ADD CONSTRAINT "jornada_filme_filme_id_fkey" FOREIGN KEY ("filme_id") REFERENCES "filme"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "journey_film" ADD CONSTRAINT "journey_film_film_id_fkey" FOREIGN KEY ("film_id") REFERENCES "film"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "lista_editorial_filme" ADD CONSTRAINT "lista_editorial_filme_lista_id_fkey" FOREIGN KEY ("lista_id") REFERENCES "lista_editorial"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "editorial_list_film" ADD CONSTRAINT "editorial_list_film_list_id_fkey" FOREIGN KEY ("list_id") REFERENCES "editorial_list"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "lista_editorial_filme" ADD CONSTRAINT "lista_editorial_filme_filme_id_fkey" FOREIGN KEY ("filme_id") REFERENCES "filme"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "editorial_list_film" ADD CONSTRAINT "editorial_list_film_film_id_fkey" FOREIGN KEY ("film_id") REFERENCES "film"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "sessao" ADD CONSTRAINT "sessao_perfil_id_fkey" FOREIGN KEY ("perfil_id") REFERENCES "perfil"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "session" ADD CONSTRAINT "session_profile_id_fkey" FOREIGN KEY ("profile_id") REFERENCES "profile"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "mensagem" ADD CONSTRAINT "mensagem_sessao_id_fkey" FOREIGN KEY ("sessao_id") REFERENCES "sessao"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "message" ADD CONSTRAINT "message_session_id_fkey" FOREIGN KEY ("session_id") REFERENCES "session"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "conversa" ADD CONSTRAINT "conversa_sessao_id_fkey" FOREIGN KEY ("sessao_id") REFERENCES "sessao"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "conversation" ADD CONSTRAINT "conversation_session_id_fkey" FOREIGN KEY ("session_id") REFERENCES "session"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "conversa" ADD CONSTRAINT "conversa_perfil_id_fkey" FOREIGN KEY ("perfil_id") REFERENCES "perfil"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "conversation" ADD CONSTRAINT "conversation_profile_id_fkey" FOREIGN KEY ("profile_id") REFERENCES "profile"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "conversa_filme" ADD CONSTRAINT "conversa_filme_conversa_id_fkey" FOREIGN KEY ("conversa_id") REFERENCES "conversa"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "conversation_film" ADD CONSTRAINT "conversation_film_conversation_id_fkey" FOREIGN KEY ("conversation_id") REFERENCES "conversation"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "conversa_filme" ADD CONSTRAINT "conversa_filme_filme_id_fkey" FOREIGN KEY ("filme_id") REFERENCES "filme"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "conversation_film" ADD CONSTRAINT "conversation_film_film_id_fkey" FOREIGN KEY ("film_id") REFERENCES "film"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "perfil_filme_assistido" ADD CONSTRAINT "perfil_filme_assistido_perfil_id_fkey" FOREIGN KEY ("perfil_id") REFERENCES "perfil"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "profile_watched_film" ADD CONSTRAINT "profile_watched_film_profile_id_fkey" FOREIGN KEY ("profile_id") REFERENCES "profile"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "perfil_filme_assistido" ADD CONSTRAINT "perfil_filme_assistido_filme_id_fkey" FOREIGN KEY ("filme_id") REFERENCES "filme"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "profile_watched_film" ADD CONSTRAINT "profile_watched_film_film_id_fkey" FOREIGN KEY ("film_id") REFERENCES "film"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "perfil_jornada" ADD CONSTRAINT "perfil_jornada_perfil_id_fkey" FOREIGN KEY ("perfil_id") REFERENCES "perfil"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "profile_journey" ADD CONSTRAINT "profile_journey_profile_id_fkey" FOREIGN KEY ("profile_id") REFERENCES "profile"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "perfil_jornada" ADD CONSTRAINT "perfil_jornada_jornada_id_fkey" FOREIGN KEY ("jornada_id") REFERENCES "jornada"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "profile_journey" ADD CONSTRAINT "profile_journey_journey_id_fkey" FOREIGN KEY ("journey_id") REFERENCES "journey"("id") ON DELETE CASCADE ON UPDATE CASCADE;

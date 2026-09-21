@@ -3,13 +3,19 @@
 import { useEffect } from 'react';
 
 /**
- * Fronteira de erro da raiz.
+ * Root error boundary.
  *
- * A mensagem da exceção não é mostrada de propósito: ela pode carregar detalhe
- * de infraestrutura. O console do navegador registra para quem está depurando;
- * o log real fica no servidor.
+ * The exception message is deliberately not shown: it can carry infrastructure
+ * detail. The browser console records it for whoever is debugging; the real log
+ * stays on the server.
  */
-export default function Erro({ error, reset }: { error: Error; reset: () => void }) {
+export default function ErrorBoundary({
+  error,
+  reset,
+}: {
+  error: Error;
+  reset: () => void;
+}) {
   useEffect(() => {
     console.error(error);
   }, [error]);
@@ -17,10 +23,10 @@ export default function Erro({ error, reset }: { error: Error; reset: () => void
   return (
     <main>
       <h1>Algo deu errado</h1>
-      <p className="sutil">
+      <p className="muted">
         O Indicador não conseguiu montar esta página. Nada do que você escreveu foi perdido.
       </p>
-      <div className="acoes">
+      <div className="actions">
         <button
           type="button"
           onClick={() => {

@@ -1,7 +1,7 @@
 ---
-# Overlay de desenvolvimento. Publica as portas no host porque a aplicação Next.js
-# roda fora do Compose (`pnpm dev`) e precisa alcançar Postgres e Qdrant.
-# Invocação sempre explícita: docker compose -f compose.yaml -f compose.dev.yaml up -d
+# Development overlay. Publishes host ports because the Next.js app runs outside
+# Compose (`pnpm dev`) and has to reach Postgres and Qdrant.
+# Always invoked explicitly: docker compose -f compose.yaml -f compose.dev.yaml up -d
 
 services:
   postgres:

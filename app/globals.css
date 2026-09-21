@@ -1,32 +1,32 @@
-/* Ferramenta interna para duas pessoas. O objetivo do CSS aqui é legibilidade
-   e densidade de informação, não identidade visual. */
+/* An internal tool for two people. The goal of this CSS is legibility and
+   information density, not visual identity. */
 
 :root {
   color-scheme: light dark;
 
-  --fundo: #fbfaf8;
-  --fundo-painel: #ffffff;
-  --fundo-sutil: #f1efea;
-  --borda: #ddd8cf;
-  --texto: #1c1a17;
-  --texto-suave: #6b655c;
-  --acento: #7a1f1f;
-  --alerta: #8a5a00;
+  --bg: #fbfaf8;
+  --bg-panel: #ffffff;
+  --bg-subtle: #f1efea;
+  --border: #ddd8cf;
+  --text: #1c1a17;
+  --text-muted: #6b655c;
+  --accent: #7a1f1f;
+  --warn: #8a5a00;
   --ok: #2c5c33;
 
-  --raio: 6px;
+  --radius: 6px;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --fundo: #171614;
-    --fundo-painel: #201e1b;
-    --fundo-sutil: #2a2724;
-    --borda: #3a3631;
-    --texto: #ece8e1;
-    --texto-suave: #a39b8f;
-    --acento: #e0857f;
-    --alerta: #e0b352;
+    --bg: #171614;
+    --bg-panel: #201e1b;
+    --bg-subtle: #2a2724;
+    --border: #3a3631;
+    --text: #ece8e1;
+    --text-muted: #a39b8f;
+    --accent: #e0857f;
+    --warn: #e0b352;
     --ok: #8fc79a;
   }
 }
@@ -37,8 +37,8 @@
 
 body {
   margin: 0;
-  background: var(--fundo);
-  color: var(--texto);
+  background: var(--bg);
+  color: var(--text);
   font:
     15px/1.6 ui-serif,
     Georgia,
@@ -53,7 +53,7 @@ main {
 }
 
 a {
-  color: var(--acento);
+  color: var(--accent);
 }
 
 h1,
@@ -73,31 +73,31 @@ h2 {
   margin: 28px 0 8px;
 }
 
-.cabecalho {
+.header {
   display: flex;
   flex-wrap: wrap;
   gap: 12px;
   align-items: baseline;
   justify-content: space-between;
-  border-bottom: 1px solid var(--borda);
+  border-bottom: 1px solid var(--border);
   padding-bottom: 12px;
   margin-bottom: 20px;
 }
 
-.sutil {
-  color: var(--texto-suave);
+.muted {
+  color: var(--text-muted);
   font-size: 13px;
 }
 
-.painel {
-  background: var(--fundo-painel);
-  border: 1px solid var(--borda);
-  border-radius: var(--raio);
+.panel {
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
   padding: 16px;
   margin: 16px 0;
 }
 
-/* ── conversa ─────────────────────────────────────────────────────────── */
+/* ── conversation ─────────────────────────────────────────────────────── */
 
 .transcript {
   display: flex;
@@ -105,37 +105,37 @@ h2 {
   gap: 16px;
 }
 
-.fala {
-  border-left: 3px solid var(--borda);
+.turn {
+  border-left: 3px solid var(--border);
   padding: 2px 0 2px 12px;
   white-space: pre-wrap;
 }
 
-.fala-curadora {
-  border-left-color: var(--texto-suave);
-  color: var(--texto-suave);
+.turn-curator {
+  border-left-color: var(--text-muted);
+  color: var(--text-muted);
 }
 
-.fala-indicador {
-  border-left-color: var(--acento);
+.turn-indicador {
+  border-left-color: var(--accent);
 }
 
-.quem {
+.speaker {
   display: block;
   font-size: 11px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--texto-suave);
+  color: var(--text-muted);
   margin-bottom: 4px;
 }
 
-.ferramenta {
+.tool-status {
   font-size: 12px;
-  color: var(--texto-suave);
+  color: var(--text-muted);
   font-style: italic;
 }
 
-/* ── formulários ──────────────────────────────────────────────────────── */
+/* ── forms ────────────────────────────────────────────────────────────── */
 
 label {
   display: block;
@@ -152,10 +152,10 @@ select {
   padding: 8px 10px;
   font: inherit;
   font-size: 14px;
-  color: var(--texto);
-  background: var(--fundo);
-  border: 1px solid var(--borda);
-  border-radius: var(--raio);
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
 }
 
 textarea {
@@ -167,16 +167,16 @@ button {
   font: inherit;
   font-size: 14px;
   padding: 8px 14px;
-  border-radius: var(--raio);
-  border: 1px solid var(--borda);
-  background: var(--fundo-sutil);
-  color: var(--texto);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--bg-subtle);
+  color: var(--text);
   cursor: pointer;
 }
 
 button[type='submit'] {
-  background: var(--acento);
-  border-color: var(--acento);
+  background: var(--accent);
+  border-color: var(--accent);
   color: #fff;
 }
 
@@ -185,14 +185,26 @@ button:disabled {
   cursor: not-allowed;
 }
 
-.acoes {
+.actions {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
   margin-top: 16px;
 }
 
-.escolha {
+.group {
+  border: 0;
+  padding: 0;
+  margin: 20px 0 0;
+}
+
+.group legend {
+  font-size: 13px;
+  font-weight: 600;
+  padding: 0;
+}
+
+.choice {
   display: flex;
   gap: 8px;
   align-items: baseline;
@@ -201,32 +213,32 @@ button:disabled {
   margin: 4px 0;
 }
 
-.escolha input {
+.choice input {
   width: auto;
 }
 
-/* ── avisos ───────────────────────────────────────────────────────────── */
+/* ── notices ──────────────────────────────────────────────────────────── */
 
-.aviso {
-  border-left: 3px solid var(--alerta);
-  background: var(--fundo-sutil);
+.notice {
+  border-left: 3px solid var(--warn);
+  background: var(--bg-subtle);
   padding: 10px 12px;
-  border-radius: 0 var(--raio) var(--raio) 0;
+  border-radius: 0 var(--radius) var(--radius) 0;
   font-size: 14px;
   margin: 12px 0;
 }
 
-.aviso-erro {
-  border-left-color: var(--acento);
+.notice-error {
+  border-left-color: var(--accent);
 }
 
-.aviso-ok {
+.notice-ok {
   border-left-color: var(--ok);
 }
 
-/* ── tabelas ──────────────────────────────────────────────────────────── */
+/* ── tables ───────────────────────────────────────────────────────────── */
 
-.rolagem {
+.scroll {
   overflow-x: auto;
 }
 
@@ -241,23 +253,27 @@ td {
   text-align: left;
   vertical-align: top;
   padding: 8px 10px;
-  border-bottom: 1px solid var(--borda);
+  border-bottom: 1px solid var(--border);
 }
 
 th {
   font-size: 12px;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: var(--texto-suave);
+  color: var(--text-muted);
 }
 
-.etiqueta {
+.tag {
   display: inline-block;
   font-size: 11px;
   letter-spacing: 0.04em;
   padding: 2px 6px;
   border-radius: 3px;
-  background: var(--fundo-sutil);
-  border: 1px solid var(--borda);
+  background: var(--bg-subtle);
+  border: 1px solid var(--border);
   white-space: nowrap;
+}
+
+.pre-wrap {
+  white-space: pre-wrap;
 }

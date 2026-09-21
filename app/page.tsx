@@ -1,71 +1,68 @@
 import Link from 'next/link';
 
-import { AbrirSessao } from '@/components/abrir-sessao.component';
-import { SeletorDeCuradora } from '@/components/seletor-de-curadora.component';
-import { nomeDaCuradora } from '@/lib/curadora.constant';
-import { curadoraAtual } from '@/server/auth.service';
+import { CuratorPicker } from '@/components/curator-picker.component';
+import { OpenSession } from '@/components/open-session.component';
+import { curatorLabel } from '@/lib/curator.constant';
+import { currentCurator } from '@/server/auth.service';
 import { db } from '@/server/db.service';
 import { env } from '@/server/env.config';
 
-export default async function Inicio() {
-  const curadora = await curadoraAtual();
+export default async function Home() {
+  const curator = await currentCurator();
 
-  if (curadora === null) {
+  if (curator === null) {
     return (
       <main>
         <h1>Indicador 2001</h1>
-        <p className="sutil">Curadoria da 2001 Vídeo. Ferramenta interna.</p>
-        <SeletorDeCuradora exigeSenha={env.APP_SENHA_CURADORIA.length > 0} />
+        <p className="muted">Curadoria da 2001 Vídeo. Ferramenta interna.</p>
+        <CuratorPicker requiresPassword={env.APP_CURATION_PASSWORD.length > 0} />
       </main>
     );
   }
 
-  const [filmes, comCuradoria, conversasAbsorvidas, conversasEmRevisao] = await Promise.all([
-    db.filme.count(),
-    db.filme.count({ where: { fonteCuratorial: 'CURADORIA_2001' } }),
-    db.conversa.count({ where: { qualidade: 'ABSORVE' } }),
-    db.conversa.count({ where: { qualidade: 'REVISAR' } }),
+  const [films, curated, absorbed, underReview] = await Promise.all([
+    db.film.count(),
+    db.film.count({ where: { curatorialSource: 'CURATION_2001' } }),
+    db.conversation.count({ where: { quality: 'ABSORB' } }),
+    db.conversation.count({ where: { quality: 'REVIEW' } }),
   ]);
 
   return (
     <main>
-      <div className="cabecalho">
+      <div className="header">
         <div>
           <h1>Indicador 2001</h1>
-          <p className="sutil">Você entrou como {nomeDaCuradora(curadora)}.</p>
+          <p className="muted">Você entrou como {curatorLabel(curator)}.</p>
         </div>
-        <Link href="/conversas">Ver conversas registradas</Link>
+        <Link href="/conversations">Ver conversas registradas</Link>
       </div>
 
-      <AbrirSessao />
+      <OpenSession />
 
       <h2>O acervo hoje</h2>
-      <div className="rolagem">
+      <div className="scroll">
         <table>
           <tbody>
             <tr>
               <th scope="row">Filmes no acervo</th>
-              <td>{filmes}</td>
+              <td>{films}</td>
             </tr>
             <tr>
               <th scope="row">Com estudo das curadoras</th>
               <td>
-                {comCuradoria}
-                {filmes > comCuradoria ? (
-                  <span className="sutil">
-                    {' '}
-                    — {filmes - comCuradoria} ainda sem camada curatorial
-                  </span>
+                {curated}
+                {films > curated ? (
+                  <span className="muted"> — {films - curated} ainda sem camada curatorial</span>
                 ) : null}
               </td>
             </tr>
             <tr>
               <th scope="row">Conversas absorvidas no dataset</th>
-              <td>{conversasAbsorvidas}</td>
+              <td>{absorbed}</td>
             </tr>
             <tr>
               <th scope="row">Conversas em revisão (divergência)</th>
-              <td>{conversasEmRevisao}</td>
+              <td>{underReview}</td>
             </tr>
           </tbody>
         </table>

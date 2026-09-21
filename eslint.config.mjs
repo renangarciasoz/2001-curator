@@ -1,7 +1,7 @@
-// Reconstrução local do baseline `@epcvip/eslint-config-typescript`: aquele pacote vive no
-// registro privado da EPCVIP e não é resolvível a partir deste repositório. Os rulesets
-// (strict-type-checked + stylistic-type-checked, import-x, unused-imports, next) e a
-// política de override são os mesmos descritos em governance/standards/typescript/eslint.
+// Local reconstruction of the `@epcvip/eslint-config-typescript` baseline: that package
+// lives in EPCVIP's private registry and is not resolvable from this repository. The
+// rulesets (strict-type-checked + stylistic-type-checked, import-x, unused-imports, next)
+// and the override policy are the ones described in governance/standards/typescript/eslint.
 import js from '@eslint/js';
 import nextPlugin from '@next/eslint-plugin-next';
 import importX from 'eslint-plugin-import-x';

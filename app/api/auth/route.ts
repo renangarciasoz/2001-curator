@@ -3,45 +3,45 @@ import 'server-only';
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 
-import { CURADORAS } from '@/lib/curadora.constant';
-import { curadoraAtual, entrar, sair } from '@/server/auth.service';
-import { responderErro } from '@/server/resposta-http.util';
+import { CURATORS } from '@/lib/curator.constant';
+import { currentCurator, signIn, signOut } from '@/server/auth.service';
+import { respondError } from '@/server/http-response.util';
 
-const EntrarSchema = z.object({
-  curadora: z.enum(CURADORAS),
-  senha: z.string().default(''),
+const SignInSchema = z.object({
+  curator: z.enum(CURATORS),
+  password: z.string().default(''),
 });
 
-/** Quem está nesta sessão do navegador. */
+/** Who is in this browser session. */
 export async function GET(): Promise<NextResponse> {
   try {
     return NextResponse.json(
-      { curadora: await curadoraAtual() },
+      { curator: await currentCurator() },
       { headers: { 'cache-control': 'no-store' } },
     );
   } catch (e) {
-    return responderErro(e);
+    return respondError(e);
   }
 }
 
 export async function POST(request: Request): Promise<NextResponse> {
   try {
-    const { curadora, senha } = EntrarSchema.parse(await request.json());
+    const { curator, password } = SignInSchema.parse(await request.json());
 
-    await entrar(curadora, senha);
+    await signIn(curator, password);
 
-    return NextResponse.json({ curadora }, { status: 200 });
+    return NextResponse.json({ curator }, { status: 200 });
   } catch (e) {
-    return responderErro(e);
+    return respondError(e);
   }
 }
 
 export async function DELETE(): Promise<NextResponse> {
   try {
-    await sair();
+    await signOut();
 
-    return NextResponse.json({ curadora: null }, { status: 200 });
+    return NextResponse.json({ curator: null }, { status: 200 });
   } catch (e) {
-    return responderErro(e);
+    return respondError(e);
   }
 }

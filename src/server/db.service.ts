@@ -3,21 +3,22 @@ import 'server-only';
 import { PrismaClient } from '@prisma/client';
 
 /**
- * Cliente Prisma único por processo.
+ * One Prisma client per process.
  *
- * O hot reload do Next em dev recria o módulo a cada alteração; sem o cache no
- * globalThis cada recarga abriria um novo pool e o Postgres esgotaria conexões.
+ * Next's hot reload re-creates the module on every edit; without the cache on
+ * globalThis each reload would open a new pool and Postgres would run out of
+ * connections.
  */
-const globalParaPrisma = globalThis as typeof globalThis & {
+const globalForPrisma = globalThis as typeof globalThis & {
   prismaClient?: PrismaClient;
 };
 
 export const db: PrismaClient =
-  globalParaPrisma.prismaClient ??
+  globalForPrisma.prismaClient ??
   new PrismaClient({
     log: process.env['NODE_ENV'] === 'development' ? ['warn', 'error'] : ['error'],
   });
 
 if (process.env['NODE_ENV'] !== 'production') {
-  globalParaPrisma.prismaClient = db;
+  globalForPrisma.prismaClient = db;
 }

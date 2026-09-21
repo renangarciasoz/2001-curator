@@ -2,44 +2,46 @@ import 'server-only';
 
 import Anthropic from '@anthropic-ai/sdk';
 
-import { ProviderIndisponivelError } from '@/lib/app-error.util';
+import { ProviderUnavailableError } from '@/lib/app-error.util';
 
 import { env } from './env.config';
 
 /**
- * Modelo que assume se o principal recusar por política.
+ * Model that takes over if the primary one declines on policy grounds.
  *
- * Recusa é improvável num produto de cinema, mas uma conversa que morre no meio
- * sem explicação é pior do que uma atendida por um modelo da geração anterior.
+ * A refusal is unlikely in a film product, but a conversation that dies
+ * mid-turn with no explanation is worse than one served by the previous
+ * generation of the model.
  */
-export const MODELO_DE_FALLBACK = 'claude-opus-4-8';
+export const FALLBACK_MODEL = 'claude-opus-4-8';
 
-export const BETA_DE_FALLBACK = 'server-side-fallback-2026-06-01';
+export const FALLBACK_BETA = 'server-side-fallback-2026-06-01';
 
-/** Streaming: o teto é generoso porque não há risco de timeout de request. */
-export const MAX_TOKENS_DA_CONVERSA = 64_000;
+/** Streaming: the ceiling is generous because there is no request-timeout risk. */
+export const CONVERSATION_MAX_TOKENS = 64_000;
 
-let clienteCache: Anthropic | null = null;
+let cachedClient: Anthropic | null = null;
 
 /**
- * Cliente da Messages API.
+ * Messages API client.
  *
- * @throws {ProviderIndisponivelError} quando não há ANTHROPIC_API_KEY. Todo o
- *   resto do projeto (ingestão, indexação, exportação) roda sem ela; só o chat não.
+ * @throws {ProviderUnavailableError} when ANTHROPIC_API_KEY is missing.
+ *   Everything else in the project (ingestion, indexing, export) runs without
+ *   it; only the chat does not.
  */
-export function obterClienteAnthropic(): Anthropic {
+export function getAnthropicClient(): Anthropic {
   if (env.ANTHROPIC_API_KEY.length === 0) {
-    throw new ProviderIndisponivelError(
+    throw new ProviderUnavailableError(
       'anthropic',
-      'ANTHROPIC_API_KEY não configurado — o chat do Indicador precisa dela.',
+      'ANTHROPIC_API_KEY is not configured — the Indicador chat needs it.',
     );
   }
 
-  clienteCache ??= new Anthropic({ apiKey: env.ANTHROPIC_API_KEY });
+  cachedClient ??= new Anthropic({ apiKey: env.ANTHROPIC_API_KEY });
 
-  return clienteCache;
+  return cachedClient;
 }
 
-export function temCredencialAnthropic(): boolean {
+export function hasAnthropicCredential(): boolean {
   return env.ANTHROPIC_API_KEY.length > 0;
 }

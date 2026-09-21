@@ -1,20 +1,22 @@
-// Indicador 2001 — modelo de dados.
+// Indicador 2001 — data model.
 //
-// Duas regras estruturais atravessam este schema e não devem ser violadas:
+// Two structural rules run through this schema and must not be broken:
 //
-//  1. OS DOIS BALDES. Cada dado carrega a sua origem. A camada factual vem de
-//     terceiros (TMDB) e é APENAS consulta — nunca material de treino. A camada
-//     curatorial é conteúdo próprio da 2001 e é o que alimenta a Fase 2. Em
-//     `Filme` os dois convivem na mesma linha, separados em blocos e rastreados
-//     por `fonte_factual` / `fonte_curatorial`. O exportador de dataset só lê o
-//     bloco curatorial, e só quando a fonte é CURADORIA_2001.
+//  1. THE TWO BUCKETS. Every field carries its provenance. The factual layer
+//     comes from a third party (TMDB) and is lookup ONLY — never training
+//     material. The curatorial layer is the 2001 archive's own content and is
+//     what feeds Phase 2. In `film` the two live on the same row, split into
+//     blocks and tracked by `factual_source` / `curatorial_source`. The dataset
+//     exporter reads the curatorial block only, and only when the source is
+//     CURATION_2001.
 //
-//  2. O PORQUÊ É SEMPRE CAPTURADO. `conexao.porque` é NOT NULL e não-vazio.
-//     `conversa.porque_da_correcao` é obrigatório sempre que houver `correcao`.
-//     Ambos são garantidos por CHECK constraint na migration, não só na aplicação.
+//  2. THE WHY IS ALWAYS CAPTURED. `connection.why` is NOT NULL and non-empty.
+//     `conversation.correction_reason` is required whenever there is a
+//     `correction`. Both are enforced by CHECK constraints in the migration,
+//     not only by the application.
 //
-// A ordem dos atributos segue as 8 categorias do padrão de data model:
-// PK → FKs → identificadores secundários → domínio → derivados → status → flags → timestamps.
+// Attribute order follows the eight data-model categories:
+// PK → FKs → secondary identifiers → domain → derived → statuses → flags → timestamps.
 
 generator client {
   provider = "prisma-client-js"
@@ -26,400 +28,401 @@ datasource db {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Vocabulários
+// Vocabularies
 // ─────────────────────────────────────────────────────────────────────────────
 
-/// Quem assina uma decisão curatorial. DEMO não é uma pessoa: marca dado de
-/// demonstração gerado pelo seed, que nunca é exportado como dado de treino.
-enum Curador {
+/// Who signs a curatorial decision. DEMO is not a person: it marks seeded
+/// demonstration data, which is never exported as training data.
+enum Curator {
   SONIA
   MIRELLA
-  AMBAS
+  BOTH
   DEMO
 }
 
-/// Sem julgamento de valor. Todo filme é filme.
-enum RegistroComercial {
-  COMERCIAL
-  CABECA
-  AMBOS
+/// Descriptive, never a value judgement. Every film is a film.
+enum CommercialRegister {
+  COMMERCIAL
+  ARTHOUSE
+  BOTH
 }
 
-/// Taxonomia do acervo, espelhando a estrutura de pastas da curadoria.
-enum CategoriaAcervo {
-  HISTORIA_DA_EMPRESA
-  METODO_DE_TREINAMENTO
-  CURADORIA
+/// Archive taxonomy, mirroring the curators' folder structure.
+enum ArchiveCategory {
+  COMPANY_HISTORY
+  TRAINING_METHOD
+  CURATION
   CLIPPING
-  ENTREVISTAS
-  REVISTAS_2001
-  CURSOS
-  LISTA_OMO
-  ATENDIMENTO_E_CASOS_REAIS
-  TEXTOS_DA_SONIA
-  PREMIACOES
-  MARKETING_E_EVENTOS
+  INTERVIEWS
+  MAGAZINES_2001
+  COURSES
+  OMO_LIST
+  SERVICE_AND_REAL_CASES
+  SONIA_TEXTS
+  AWARDS
+  MARKETING_AND_EVENTS
 }
 
-enum TipoConexao {
-  PORTA_DE_ENTRADA
-  SE_GOSTOU_DE
-  ANTES_DE_VER
-  LANCAMENTO_PARA_ACERVO
-  ACERVO_PARA_LANCAMENTO
-  OUTRO
+enum ConnectionType {
+  ENTRY_POINT
+  IF_YOU_LIKED
+  BEFORE_WATCHING
+  RELEASE_TO_ARCHIVE
+  ARCHIVE_TO_RELEASE
+  OTHER
 }
 
-enum TipoLista {
-  TOP_DO_MES
-  TEMATICO
-  EVENTO
-  OMO_HISTORICA
+enum EditorialListType {
+  MONTHLY_TOP
+  THEMATIC
+  EVENT
+  HISTORIC_OMO
 }
 
-enum Consenso {
-  ACORDO
-  DIVERGENCIA
-  SO_UMA_AVALIOU
+enum Consensus {
+  AGREEMENT
+  DISAGREEMENT
+  ONLY_ONE_REVIEWED
 }
 
-/// Portão de qualidade do `registrar_feedback`.
-enum Qualidade {
-  ABSORVE
-  DESCARTA
-  REVISAR
+/// The `record_feedback` quality gate.
+enum Quality {
+  ABSORB
+  DISCARD
+  REVIEW
 }
 
-enum Confianca {
-  ALTA
+enum Confidence {
+  HIGH
   NORMAL
 }
 
-/// Origem da camada factual. Balde de terceiros: consulta, nunca treino.
-enum FonteFactual {
+/// Provenance of the factual layer. Third-party bucket: lookup, never training.
+enum FactualSource {
   TMDB
-  FIXTURE_DEV
+  DEV_FIXTURE
 }
 
-/// Origem da camada curatorial. Só CURADORIA_2001 é material treinável.
-enum FonteCuratorial {
-  CURADORIA_2001
+/// Provenance of the curatorial layer. Only CURATION_2001 is trainable material.
+enum CuratorialSource {
+  CURATION_2001
   DEMO
 }
 
-enum PapelNaConversa {
-  RECOMENDADO_PELA_IA
-  CORRIGIDO_PELA_CURADORA
+enum ConversationRole {
+  RECOMMENDED_BY_AI
+  CORRECTED_BY_CURATOR
 }
 
-enum AutorDaMensagem {
-  CURADORA
+enum MessageAuthor {
+  CURATOR
   INDICADOR
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Acervo
+// Archive
 // ─────────────────────────────────────────────────────────────────────────────
 
-model Filme {
+model Film {
   id String @id @default(uuid()) @db.Uuid
 
   tmdbId Int? @unique @map("tmdb_id")
 
-  // ── camada factual (balde de terceiros — consulta, nunca treino) ──
-  titulo         String
-  tituloOriginal String? @map("titulo_original")
-  ano            Int?
-  diretor        String?
-  pais           String?
-  sinopseFactual String? @map("sinopse_factual")
-  posterPath     String? @map("poster_path")
+  // ── factual layer (third-party bucket — lookup, never training) ──
+  title           String
+  originalTitle   String? @map("original_title")
+  year            Int?
+  director        String?
+  country         String?
+  factualSynopsis String? @map("factual_synopsis")
+  posterPath      String? @map("poster_path")
 
-  // ── camada curatorial 2001 (balde próprio — este é o diferencial) ──
-  /// 'conforta' | 'desafia' | 'destrói' | … — vocabulário deliberadamente aberto.
-  tomEmocional      String?            @map("tom_emocional")
-  /// O que o filme faz com o espectador.
-  oQueProvoca       String?            @map("o_que_provoca")
-  registroComercial RegistroComercial? @map("registro_comercial")
-  /// O estudo de meses. Texto livre.
-  notasCuratoriais  String?            @map("notas_curatoriais")
-  /// Por que importa na história do cinema.
-  contextoHistorico String?            @map("contexto_historico")
-  categoriaAcervo   CategoriaAcervo?   @map("categoria_acervo")
-  avaliadoPor       Curador[]          @map("avaliado_por")
+  // ── 2001 curatorial layer (own bucket — this is the differentiator) ──
+  /// 'conforta' | 'desafia' | 'destrói' | … — deliberately open vocabulary,
+  /// because the words belong to the curators and not to the schema.
+  emotionalTone      String?             @map("emotional_tone")
+  /// What the film does to the viewer.
+  whatItProvokes     String?             @map("what_it_provokes")
+  commercialRegister CommercialRegister? @map("commercial_register")
+  /// The months-long study. Free text.
+  curatorialNotes    String?             @map("curatorial_notes")
+  /// Why it matters in the history of cinema.
+  historicalContext  String?             @map("historical_context")
+  archiveCategory    ArchiveCategory?    @map("archive_category")
+  reviewedBy         Curator[]           @map("reviewed_by")
 
-  fonteFactual    FonteFactual     @map("fonte_factual")
-  fonteCuratorial FonteCuratorial? @map("fonte_curatorial")
+  factualSource    FactualSource     @map("factual_source")
+  curatorialSource CuratorialSource? @map("curatorial_source")
 
-  /// Marcado pelo indexador quando o vetor no Qdrant reflete o texto atual.
-  indexadoEm DateTime? @map("indexado_em") @db.Timestamptz(6)
-  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt  DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  /// Set by the indexer when the Qdrant vector reflects the current text.
+  indexedAt DateTime? @map("indexed_at") @db.Timestamptz(6)
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  conexoesComoOrigem  Conexao[]              @relation("conexao_origem")
-  conexoesComoDestino Conexao[]              @relation("conexao_destino")
-  jornadas            JornadaFilme[]
-  listas              ListaEditorialFilme[]
-  conversas           ConversaFilme[]
-  assistidoPor        PerfilFilmeAssistido[]
+  outgoingConnections Connection[]        @relation("connection_source")
+  incomingConnections Connection[]        @relation("connection_target")
+  journeys            JourneyFilm[]
+  editorialLists      EditorialListFilm[]
+  conversations       ConversationFilm[]
+  watchedBy           ProfileWatchedFilm[]
 
-  @@index([categoriaAcervo])
-  @@index([indexadoEm])
-  @@map("filme")
+  @@index([archiveCategory])
+  @@index([indexedAt])
+  @@map("film")
 }
 
-/// O coração do Método: a ponte entre dois filmes, e o porquê dela.
-model Conexao {
+/// The heart of the Method: the bridge between two films, and its reason.
+model Connection {
   id String @id @default(uuid()) @db.Uuid
 
-  filmeOrigemId  String @map("filme_origem_id") @db.Uuid
-  filmeDestinoId String @map("filme_destino_id") @db.Uuid
+  sourceFilmId String @map("source_film_id") @db.Uuid
+  targetFilmId String @map("target_film_id") @db.Uuid
 
-  tipo TipoConexao
-  /// 'gênero' | 'elenco' | 'direção' | 'tema' | … — vocabulário aberto.
-  pontePor String @map("ponte_por")
-  /// OBRIGATÓRIO. Sem o porquê a ponte é ruído. CHECK garante não-vazio.
-  porque   String
-  curador  Curador
+  type ConnectionType
+  /// 'gênero' | 'elenco' | 'direção' | 'tema' | … — open vocabulary.
+  bridgedBy String @map("bridged_by")
+  /// REQUIRED. Without the why the bridge is noise. A CHECK keeps it non-empty.
+  why     String
+  curator Curator
 
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
 
-  filmeOrigem  Filme @relation("conexao_origem", fields: [filmeOrigemId], references: [id], onDelete: Cascade)
-  filmeDestino Filme @relation("conexao_destino", fields: [filmeDestinoId], references: [id], onDelete: Cascade)
+  sourceFilm Film @relation("connection_source", fields: [sourceFilmId], references: [id], onDelete: Cascade)
+  targetFilm Film @relation("connection_target", fields: [targetFilmId], references: [id], onDelete: Cascade)
 
-  @@unique([filmeOrigemId, filmeDestinoId, tipo])
-  @@index([filmeOrigemId])
-  @@map("conexao")
+  @@unique([sourceFilmId, targetFilmId, type])
+  @@index([sourceFilmId])
+  @@map("connection")
 }
 
-/// Trilha formativa atemporal: 'Começando Kurosawa'.
-model Jornada {
+/// A timeless formative track: 'Começando Kurosawa'.
+model Journey {
   id String @id @default(uuid()) @db.Uuid
 
-  titulo String
-  /// Que espectador esta jornada forma.
-  objetivo String
-  curador  Curador
+  title String
+  /// Which viewer this journey forms.
+  objective String
+  curator   Curator
 
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
 
-  filmes  JornadaFilme[]
-  perfis  PerfilJornada[]
+  films    JourneyFilm[]
+  profiles ProfileJourney[]
 
-  @@map("jornada")
+  @@map("journey")
 }
 
-model JornadaFilme {
-  jornadaId String @map("jornada_id") @db.Uuid
-  filmeId   String @map("filme_id") @db.Uuid
+model JourneyFilm {
+  journeyId String @map("journey_id") @db.Uuid
+  filmId    String @map("film_id") @db.Uuid
 
-  ordem Int
-  /// Por que este filme, nesta posição.
-  notaDoPorque String @map("nota_do_porque")
+  position Int
+  /// Why this film, in this position.
+  whyNote String @map("why_note")
 
-  jornada Jornada @relation(fields: [jornadaId], references: [id], onDelete: Cascade)
-  filme   Filme   @relation(fields: [filmeId], references: [id], onDelete: Cascade)
+  journey Journey @relation(fields: [journeyId], references: [id], onDelete: Cascade)
+  film    Film    @relation(fields: [filmId], references: [id], onDelete: Cascade)
 
-  @@id([jornadaId, filmeId])
-  @@unique([jornadaId, ordem])
-  @@map("jornada_filme")
+  @@id([journeyId, filmId])
+  @@unique([journeyId, position])
+  @@map("journey_film")
 }
 
-/// Lista recorrente e datada — herdeira da Lista OMO.
-model ListaEditorial {
+/// A recurring, dated list — heir to the Lista OMO.
+model EditorialList {
   id String @id @default(uuid()) @db.Uuid
 
-  titulo String
-  /// Mês ou temporada: '2026-03', 'Mostra de SP 2026'.
-  periodo String
-  tipo    TipoLista
-  curador Curador
+  title String
+  /// Month or season: '2026-03', 'Mostra de SP 2026'.
+  period  String
+  type    EditorialListType
+  curator Curator
 
-  publicadaEm DateTime @map("publicada_em") @db.Timestamptz(6)
+  publishedAt DateTime @map("published_at") @db.Timestamptz(6)
   createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
 
-  filmes ListaEditorialFilme[]
+  films EditorialListFilm[]
 
-  @@index([periodo])
-  @@map("lista_editorial")
+  @@index([period])
+  @@map("editorial_list")
 }
 
-model ListaEditorialFilme {
-  listaId String @map("lista_id") @db.Uuid
-  filmeId String @map("filme_id") @db.Uuid
+model EditorialListFilm {
+  listId String @map("list_id") @db.Uuid
+  filmId String @map("film_id") @db.Uuid
 
-  ordem Int
-  /// Uma linha de curadoria sobre o filme dentro desta lista.
-  linhaDeCuradoria String @map("linha_de_curadoria")
+  position Int
+  /// One line of curation about the film within this list.
+  curationLine String @map("curation_line")
 
-  lista ListaEditorial @relation(fields: [listaId], references: [id], onDelete: Cascade)
-  filme Filme          @relation(fields: [filmeId], references: [id], onDelete: Cascade)
+  list EditorialList @relation(fields: [listId], references: [id], onDelete: Cascade)
+  film Film          @relation(fields: [filmId], references: [id], onDelete: Cascade)
 
-  @@id([listaId, filmeId])
-  @@unique([listaId, ordem])
-  @@map("lista_editorial_filme")
+  @@id([listId, filmId])
+  @@unique([listId, position])
+  @@map("editorial_list_film")
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Conversa e ciclo de feedback — o dado mais importante do projeto
+// Conversation and the feedback loop — the most important data in the project
 // ─────────────────────────────────────────────────────────────────────────────
 
-/// Uma sessão de chat entre uma curadora e o Indicador. Guarda o transcript;
-/// a unidade exportável do dataset é `Conversa`, não esta.
-model Sessao {
+/// One chat session between a curator and the Indicador. Holds the transcript;
+/// the exportable unit of the dataset is `Conversation`, not this.
+model Session {
   id String @id @default(uuid()) @db.Uuid
 
-  perfilId String? @map("perfil_id") @db.Uuid
+  profileId String? @map("profile_id") @db.Uuid
 
-  /// Quem está no comando da sessão (nunca AMBAS: é uma pessoa por sessão).
-  curador Curador
-  titulo  String?
+  /// Who is driving the session (never BOTH: one person per session).
+  curator Curator
+  title   String?
 
-  encerradaEm DateTime? @map("encerrada_em") @db.Timestamptz(6)
-  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt   DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  endedAt   DateTime? @map("ended_at") @db.Timestamptz(6)
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  perfil    Perfil?    @relation(fields: [perfilId], references: [id], onDelete: SetNull)
-  mensagens Mensagem[]
-  conversas Conversa[]
+  profile       Profile?       @relation(fields: [profileId], references: [id], onDelete: SetNull)
+  messages      Message[]
+  conversations Conversation[]
 
-  @@index([curador])
-  @@map("sessao")
+  @@index([curator])
+  @@map("session")
 }
 
-model Mensagem {
+model Message {
   id String @id @default(uuid()) @db.Uuid
 
-  sessaoId String @map("sessao_id") @db.Uuid
+  sessionId String @map("session_id") @db.Uuid
 
-  autor AutorDaMensagem
-  /// Blocos de conteúdo da Messages API (text / tool_use / tool_result),
-  /// guardados crus para que o loop de conversa possa ser reconstruído fielmente.
-  blocos Json
-  ordem  Int
+  author MessageAuthor
+  /// Raw Messages API content blocks (text / tool_use / tool_result / thinking),
+  /// stored verbatim so the conversation loop can be replayed faithfully.
+  blocks   Json
+  position Int
 
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
 
-  sessao Sessao @relation(fields: [sessaoId], references: [id], onDelete: Cascade)
+  session Session @relation(fields: [sessionId], references: [id], onDelete: Cascade)
 
-  @@unique([sessaoId, ordem])
-  @@map("mensagem")
+  @@unique([sessionId, position])
+  @@map("message")
 }
 
-/// A unidade do dataset curatorial: um pedido, o que a IA perguntou, o que ela
-/// recomendou, e a correção da curadora com o porquê.
-model Conversa {
+/// The unit of the curatorial dataset: a request, what the AI asked, what it
+/// recommended, and the curator's correction with its reason.
+model Conversation {
   id String @id @default(uuid()) @db.Uuid
 
-  sessaoId String? @map("sessao_id") @db.Uuid
-  perfilId String? @map("perfil_id") @db.Uuid
+  sessionId String? @map("session_id") @db.Uuid
+  profileId String? @map("profile_id") @db.Uuid
 
-  /// O que a pessoa queria.
-  pedidoDoUsuario String @map("pedido_do_usuario")
-  /// O que a IA perguntou antes de indicar. Array JSON de strings.
-  perguntasDaIa   Json   @map("perguntas_da_ia")
-  /// O que ela sugeriu, com justificativa.
-  recomendacaoDaIa String @map("recomendacao_da_ia")
+  /// What the person wanted.
+  userRequest String @map("user_request")
+  /// What the AI asked before recommending. JSON array of strings.
+  aiQuestions Json   @map("ai_questions")
+  /// What it suggested, with its reasoning.
+  aiRecommendation String @map("ai_recommendation")
 
-  /// O ajuste da curadora. Nulo quando houve acordo sem ajuste, e nulo em
-  /// divergência — divergência não elege vencedor; as duas leituras vão em
-  /// `nota_da_divergencia`.
-  correcao         String?
-  /// OBRIGATÓRIO quando há correção. CHECK garante a regra no banco.
-  porqueDaCorrecao String? @map("porque_da_correcao")
+  /// The curator's adjustment. Null when both agreed with no change, and null
+  /// on disagreement — disagreement elects no winner; both readings go to
+  /// `disagreement_note`.
+  correction       String?
+  /// REQUIRED when there is a correction. A CHECK enforces the rule in the database.
+  correctionReason String? @map("correction_reason")
 
-  avaliadoPor Curador? @map("avaliado_por")
-  /// As duas leituras registradas, com atribuição, quando divergiram.
-  notaDaDivergencia String? @map("nota_da_divergencia")
+  reviewedBy Curator? @map("reviewed_by")
+  /// Both readings recorded, with attribution, when the curators disagreed.
+  disagreementNote String? @map("disagreement_note")
 
-  consenso  Consenso?
-  qualidade Qualidade?
-  confianca Confianca?
-
-  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
-
-  sessao Sessao?         @relation(fields: [sessaoId], references: [id], onDelete: SetNull)
-  perfil Perfil?         @relation(fields: [perfilId], references: [id], onDelete: SetNull)
-  filmes ConversaFilme[]
-
-  @@index([qualidade])
-  @@index([consenso])
-  @@map("conversa")
-}
-
-/// Quais filmes a IA recomendou e quais a curadora colocou no lugar.
-/// Torna o dataset da Fase 2 utilizável sem ter que reparsear texto livre.
-model ConversaFilme {
-  conversaId String @map("conversa_id") @db.Uuid
-  filmeId    String @map("filme_id") @db.Uuid
-
-  papel PapelNaConversa
-  ordem Int
-
-  conversa Conversa @relation(fields: [conversaId], references: [id], onDelete: Cascade)
-  filme    Filme    @relation(fields: [filmeId], references: [id], onDelete: Cascade)
-
-  @@id([conversaId, filmeId, papel])
-  @@map("conversa_filme")
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Memória entre visitas
-// ─────────────────────────────────────────────────────────────────────────────
-
-model Perfil {
-  id String @id @default(uuid()) @db.Uuid
-
-  /// Identificador do espectador. Na Fase 1 é a persona que a curadora testa.
-  usuarioId String @unique @map("usuario_id")
-
-  gostos     String[]
-  evita      String[]
-  repertorio String?
-  /// Contexto atual, quando a pessoa compartilha.
-  momentoDeVida String? @map("momento_de_vida")
-  /// Tratamento: 'padrao' | 'premium' | …
-  nivel String @default("padrao")
+  consensus  Consensus?
+  quality    Quality?
+  confidence Confidence?
 
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  jaAssistiu          PerfilFilmeAssistido[]
-  historicoDeJornadas PerfilJornada[]
-  sessoes             Sessao[]
-  conversas           Conversa[]
+  session Session?           @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+  profile Profile?           @relation(fields: [profileId], references: [id], onDelete: SetNull)
+  films   ConversationFilm[]
 
-  @@map("perfil")
+  @@index([quality])
+  @@index([consensus])
+  @@map("conversation")
 }
 
-/// "Eu já aluguei esse?"
-model PerfilFilmeAssistido {
-  perfilId String @map("perfil_id") @db.Uuid
-  filmeId  String @map("filme_id") @db.Uuid
+/// Which films the AI recommended and which ones the curator put in their place.
+/// Makes the Phase 2 dataset usable without re-parsing free text.
+model ConversationFilm {
+  conversationId String @map("conversation_id") @db.Uuid
+  filmId         String @map("film_id") @db.Uuid
 
-  nota String?
+  role     ConversationRole
+  position Int
 
-  registradoEm DateTime @default(now()) @map("registrado_em") @db.Timestamptz(6)
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  film         Film         @relation(fields: [filmId], references: [id], onDelete: Cascade)
 
-  perfil Perfil @relation(fields: [perfilId], references: [id], onDelete: Cascade)
-  filme  Filme  @relation(fields: [filmeId], references: [id], onDelete: Cascade)
-
-  @@id([perfilId, filmeId])
-  @@map("perfil_filme_assistido")
+  @@id([conversationId, filmId, role])
+  @@map("conversation_film")
 }
 
-/// Por onde a pessoa já foi conduzida.
-model PerfilJornada {
-  perfilId  String @map("perfil_id") @db.Uuid
-  jornadaId String @map("jornada_id") @db.Uuid
+// ─────────────────────────────────────────────────────────────────────────────
+// Memory between visits
+// ─────────────────────────────────────────────────────────────────────────────
 
-  iniciadaEm  DateTime  @default(now()) @map("iniciada_em") @db.Timestamptz(6)
-  concluidaEm DateTime? @map("concluida_em") @db.Timestamptz(6)
+model Profile {
+  id String @id @default(uuid()) @db.Uuid
 
-  perfil  Perfil  @relation(fields: [perfilId], references: [id], onDelete: Cascade)
-  jornada Jornada @relation(fields: [jornadaId], references: [id], onDelete: Cascade)
+  /// Viewer identifier. In Phase 1 this is the persona a curator is testing.
+  userId String @unique @map("user_id")
 
-  @@id([perfilId, jornadaId])
-  @@map("perfil_jornada")
+  likes      String[]
+  avoids     String[]
+  repertoire String?
+  /// Current context, when the person shares it.
+  lifeMoment String? @map("life_moment")
+  /// Treatment: 'padrao' | 'premium' | …
+  tier String @default("padrao")
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  watchedFilms  ProfileWatchedFilm[]
+  journeyHistory ProfileJourney[]
+  sessions      Session[]
+  conversations Conversation[]
+
+  @@map("profile")
+}
+
+/// "Have I already rented this one?"
+model ProfileWatchedFilm {
+  profileId String @map("profile_id") @db.Uuid
+  filmId    String @map("film_id") @db.Uuid
+
+  note String?
+
+  recordedAt DateTime @default(now()) @map("recorded_at") @db.Timestamptz(6)
+
+  profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  film    Film    @relation(fields: [filmId], references: [id], onDelete: Cascade)
+
+  @@id([profileId, filmId])
+  @@map("profile_watched_film")
+}
+
+/// Where the person has already been led.
+model ProfileJourney {
+  profileId String @map("profile_id") @db.Uuid
+  journeyId String @map("journey_id") @db.Uuid
+
+  startedAt   DateTime  @default(now()) @map("started_at") @db.Timestamptz(6)
+  completedAt DateTime? @map("completed_at") @db.Timestamptz(6)
+
+  profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  journey Journey @relation(fields: [journeyId], references: [id], onDelete: Cascade)
+
+  @@id([profileId, journeyId])
+  @@map("profile_journey")
 }
