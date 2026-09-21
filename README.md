@@ -272,6 +272,20 @@ transcript que a sustenta.
 
 ---
 
+## Limitações conhecidas
+
+- **Duas portas para `registrar_feedback`.** A curadora pode avaliar pelo painel
+  de correção **ou** pedindo ao próprio Indicador que registre. Os dois caminhos
+  criam linhas separadas em `conversa`; não há deduplicação. Avalie cada
+  recomendação por um caminho só, ou o dataset ganha registros gêmeos.
+- **O painel não preenche `conversa_filme`.** Ligar a conversa aos filmes exigiria
+  digitar UUIDs à mão. Só o caminho em que o Indicador chama a tool preenche esse
+  vínculo, porque ele tem os ids.
+- **O provider `local` de embeddings não faz busca semântica.** Ele aproxima
+  sobreposição de palavras. É andaime de demonstração; configure a Voyage antes
+  de indexar acervo real.
+- **Sem paginação em `/conversas`.** A página mostra as 100 mais recentes.
+
 ## Fora de escopo (Fase 1)
 
 Deliberadamente **não** construído aqui: fine-tuning ou qualquer treino de modelo
