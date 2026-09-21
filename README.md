@@ -315,6 +315,75 @@ behind it.
 
 ---
 
+## Deploying
+
+Vercel hosts the Next.js app well. It does **not** host the two databases —
+those are separate managed services, and Prisma on serverless needs a specific
+connection setup. Four things to settle.
+
+### 1. Close the login first
+
+`APP_CURATION_PASSWORD` is optional in development and **mandatory in
+production**: `signIn` refuses a passwordless sign-in when `NODE_ENV` is
+`production`. Without that guard, anyone who finds the URL picks a curator's
+name and writes to the dataset under it.
+
+Two curators do not justify an identity provider, but they do justify one of:
+
+- a long random `APP_CURATION_PASSWORD` (the built-in path), or
+- Vercel Deployment Protection in front of the whole app, or
+- keeping the tool off the public internet entirely and running it locally,
+  which is a legitimate answer for a tool with two users.
+
+`APP_SESSION_SECRET` must also be a long random value, and a different one per
+environment — it signs the cookie that decides who a review is attributed to.
+
+### 2. Postgres
+
+Any managed Postgres works. On serverless, connection exhaustion is the trap:
+every cold start opens a connection, and Postgres runs out long before traffic
+does. Use a provider with a pooler (Neon and Supabase both ship one) and give
+Prisma both URLs:
+
+```prisma
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")        // pooled — the app
+  directUrl = env("DIRECT_DATABASE_URL") // direct — migrations
+}
+```
+
+That `directUrl` line is **not** in `schema.prisma` yet: adding it makes the
+variable required, which would break local development until it is set. Add it
+when you pick a provider.
+
+Migrations run with the direct URL, never from a serverless function. Either
+`pnpm db:migrate:deploy` from your machine against production, or a build step
+— `prisma migrate deploy && next build` as the Vercel build command.
+
+### 3. Qdrant
+
+Qdrant Cloud has a free tier that fits this archive. Set `QDRANT_URL` and
+`QDRANT_API_KEY`; the client already sends the key when it is present. Then
+run `pnpm index:embeddings -- --recreate` **once, pointed at production**, to
+build the collection — the ingestion and indexing scripts are CLIs, not part of
+the deployment.
+
+Keep the server minor in step with `@qdrant/js-client-rest`.
+
+### 4. The conversation is a long request
+
+A turn can make up to eight tool round-trips before it answers, each one a full
+model call. That runs well past the default serverless timeout. Set
+`maxDuration` on `app/api/chat/route.ts` to the ceiling your plan allows and
+confirm the platform streams SSE without buffering; the route already sends
+`x-accel-buffering: no` for proxies that do.
+
+If the turn cannot fit in the platform's limit, the conversation loop belongs
+on a long-lived host (a container on Fly, Railway, or a VM) rather than on
+serverless functions. That is an architecture decision, not a configuration
+one — worth settling before the first real curation session, not after.
+
 ## Known limitations
 
 - **Two doors into `record_feedback`.** A curator can review through the

@@ -19,6 +19,7 @@
     "format:check": "prettier --check .",
     "index:embeddings": "node --env-file-if-exists=.env --conditions react-server --import tsx scripts/index-embeddings.ts",
     "ingest:tmdb": "node --env-file-if-exists=.env --conditions react-server --import tsx scripts/ingest-tmdb.ts",
+    "postinstall": "prisma generate",
     "lint": "eslint .",
     "start": "next start",
     "test": "vitest run",

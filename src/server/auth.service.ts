@@ -21,9 +21,22 @@ const COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 30;
  * What matters here is not secrecy but correct attribution of every review in
  * the dataset.
  *
- * @throws {CuratorNotAuthenticatedError} when the shared password does not match.
+ * `APP_CURATION_PASSWORD` is optional in development, where the tool is only
+ * reachable on localhost and typing a password on every reload buys nothing.
+ * It is mandatory in production: without it, anyone who finds the URL picks a
+ * curator's name and writes to the dataset under it — which is the one asset
+ * this whole project exists to protect.
+ *
+ * @throws {CuratorNotAuthenticatedError} when the password does not match, or
+ *   when production has no password configured at all.
  */
 export async function signIn(curator: CuratorName, password: string): Promise<void> {
+  const isProduction = process.env.NODE_ENV === 'production';
+
+  if (isProduction && env.APP_CURATION_PASSWORD.length === 0) {
+    throw new CuratorNotAuthenticatedError('APP_CURATION_PASSWORD is not configured');
+  }
+
   if (env.APP_CURATION_PASSWORD.length > 0 && !passwordMatches(password)) {
     throw new CuratorNotAuthenticatedError('curation password does not match');
   }
