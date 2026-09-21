@@ -31,8 +31,11 @@ async function main(): Promise<void> {
     },
   });
 
-  const pediuTmdb = values.id.length > 0 || values.titulo.length > 0;
-  const usarFixture = values.fixture || !pediuTmdb || !temCredencialTmdb();
+  const ids = values.id ?? [];
+  const titulos = values.titulo ?? [];
+
+  const pediuTmdb = ids.length > 0 || titulos.length > 0;
+  const usarFixture = (values.fixture ?? false) || !pediuTmdb || !temCredencialTmdb();
 
   if (usarFixture) {
     if (pediuTmdb && !temCredencialTmdb()) {
@@ -43,7 +46,7 @@ async function main(): Promise<void> {
     return;
   }
 
-  await ingerir(await coletarDoTmdb(values.id, values.titulo), 'TMDB');
+  await ingerir(await coletarDoTmdb(ids, titulos), 'TMDB');
 }
 
 async function coletarDoTmdb(

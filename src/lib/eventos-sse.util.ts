@@ -51,7 +51,9 @@ function interpretar<TEvento>(bruto: string): TEvento | null {
   }
 
   try {
-    return JSON.parse(linha.slice('data: '.length)) as TEvento;
+    const dado: unknown = JSON.parse(linha.slice('data: '.length));
+
+    return dado as TEvento;
   } catch {
     // Evento truncado por queda de conexão: ignorar é melhor que derrubar o chat.
     return null;

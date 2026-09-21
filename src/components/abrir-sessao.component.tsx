@@ -35,7 +35,7 @@ export function AbrirSessao() {
       }
 
       const corpo: unknown = await resposta.json();
-      const sessaoId =
+      const sessaoId: unknown =
         typeof corpo === 'object' && corpo !== null ? Reflect.get(corpo, 'sessaoId') : null;
 
       if (typeof sessaoId !== 'string') {

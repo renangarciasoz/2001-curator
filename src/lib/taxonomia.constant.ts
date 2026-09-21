@@ -37,6 +37,10 @@ const NOMES: Readonly<Record<CategoriaDoAcervo, string>> = {
   MARKETING_E_EVENTOS: 'Marketing e eventos',
 };
 
+export function ehCategoriaDoAcervo(valor: string): valor is CategoriaDoAcervo {
+  return CATEGORIAS_DO_ACERVO.some((categoria) => categoria === valor);
+}
+
 export function nomeDaCategoria(categoria: string): string {
-  return Reflect.get(NOMES, categoria) ?? categoria;
+  return ehCategoriaDoAcervo(categoria) ? NOMES[categoria] : categoria;
 }

@@ -22,7 +22,10 @@ async function main(): Promise<void> {
     },
   });
 
-  const resultado = await indexarAcervo({ tudo: values.tudo, recriar: values.recriar });
+  const resultado = await indexarAcervo({
+    tudo: values.tudo ?? false,
+    recriar: values.recriar ?? false,
+  });
 
   console.log(
     `Provider ${resultado.provider} (${resultado.modelo}, ` +

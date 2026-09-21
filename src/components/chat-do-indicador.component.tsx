@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 
 import { lerEventosSse } from '@/lib/eventos-sse.util';
 
@@ -41,43 +41,40 @@ export function ChatDoIndicador({
 
   const parcial = useRef('');
 
-  const enviar = useCallback(
-    async (mensagem: string): Promise<void> => {
-      setErro(null);
-      setEmAndamento(true);
-      setAvaliando(false);
-      parcial.current = '';
+  async function enviar(mensagem: string): Promise<void> {
+    setErro(null);
+    setEmAndamento(true);
+    setAvaliando(false);
+    parcial.current = '';
 
-      setFalas((anteriores) => [
-        ...anteriores,
-        { autor: 'CURADORA', texto: mensagem },
-        { autor: 'INDICADOR', texto: '' },
-      ]);
+    setFalas((anteriores) => [
+      ...anteriores,
+      { autor: 'CURADORA', texto: mensagem },
+      { autor: 'INDICADOR', texto: '' },
+    ]);
 
-      try {
-        const resposta = await fetch('/api/chat', {
-          method: 'POST',
-          headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({ sessaoId, mensagem }),
-        });
+    try {
+      const resposta = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ sessaoId, mensagem }),
+      });
 
-        if (!resposta.ok || resposta.body === null) {
-          setErro('O Indicador não respondeu. Tente de novo.');
-          return;
-        }
-
-        for await (const evento of lerEventosSse<EventoDoIndicador>(resposta.body)) {
-          aplicar(evento);
-        }
-      } catch {
-        setErro('A conexão caiu no meio da conversa. O que já foi dito está salvo.');
-      } finally {
-        setEmAndamento(false);
-        setFerramenta(null);
+      if (!resposta.ok || resposta.body === null) {
+        setErro('O Indicador não respondeu. Tente de novo.');
+        return;
       }
-    },
-    [sessaoId],
-  );
+
+      for await (const evento of lerEventosSse<EventoDoIndicador>(resposta.body)) {
+        aplicar(evento);
+      }
+    } catch {
+      setErro('A conexão caiu no meio da conversa. O que já foi dito está salvo.');
+    } finally {
+      setEmAndamento(false);
+      setFerramenta(null);
+    }
+  }
 
   function aplicar(evento: EventoDoIndicador): void {
     switch (evento.tipo) {

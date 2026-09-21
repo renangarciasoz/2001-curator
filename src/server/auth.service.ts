@@ -55,6 +55,11 @@ export async function curadoraAtual(): Promise<Curadora | null> {
   }
 
   const separador = cru.lastIndexOf('.');
+
+  if (separador === -1) {
+    return null;
+  }
+
   const nome = cru.slice(0, separador);
   const assinatura = cru.slice(separador + 1);
 

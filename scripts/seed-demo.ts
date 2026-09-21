@@ -71,7 +71,7 @@ const SeedSchema = z.object({
 async function main(): Promise<void> {
   const { values } = parseArgs({ options: { limpar: { type: 'boolean', default: false } } });
 
-  if (values.limpar) {
+  if (values.limpar ?? false) {
     await limpar();
     return;
   }
@@ -187,22 +187,18 @@ async function semearJornadas(
       continue;
     }
 
-    const itens = jornada.filmes
-      .map((item, ordem) => ({ filmeId: idPorTitulo.get(item.titulo), ordem, ...item }))
-      .filter((item): item is typeof item & { filmeId: string } => item.filmeId !== undefined);
+    const itens = jornada.filmes.flatMap((item, ordem) => {
+      const filmeId = idPorTitulo.get(item.titulo);
+
+      return filmeId === undefined ? [] : [{ filmeId, ordem, notaDoPorque: item.notaDoPorque }];
+    });
 
     await db.jornada.create({
       data: {
         titulo: jornada.titulo,
         objetivo: jornada.objetivo,
         curador: 'DEMO',
-        filmes: {
-          create: itens.map((item) => ({
-            filmeId: item.filmeId,
-            ordem: item.ordem,
-            notaDoPorque: item.notaDoPorque,
-          })),
-        },
+        filmes: { create: itens },
       },
     });
 
@@ -228,9 +224,13 @@ async function semearListas(
       continue;
     }
 
-    const itens = lista.filmes
-      .map((item, ordem) => ({ filmeId: idPorTitulo.get(item.titulo), ordem, ...item }))
-      .filter((item): item is typeof item & { filmeId: string } => item.filmeId !== undefined);
+    const itens = lista.filmes.flatMap((item, ordem) => {
+      const filmeId = idPorTitulo.get(item.titulo);
+
+      return filmeId === undefined
+        ? []
+        : [{ filmeId, ordem, linhaDeCuradoria: item.linhaDeCuradoria }];
+    });
 
     await db.listaEditorial.create({
       data: {
@@ -239,13 +239,7 @@ async function semearListas(
         tipo: lista.tipo,
         curador: 'DEMO',
         publicadaEm: new Date(),
-        filmes: {
-          create: itens.map((item) => ({
-            filmeId: item.filmeId,
-            ordem: item.ordem,
-            linhaDeCuradoria: item.linhaDeCuradoria,
-          })),
-        },
+        filmes: { create: itens },
       },
     });
 

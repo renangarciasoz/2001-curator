@@ -6,6 +6,7 @@ import { useState } from 'react';
 import { CURADORAS, ehCuradora, nomeDaCuradora } from '@/lib/curadora.constant';
 
 import type { Curadora } from '@/lib/curadora.constant';
+import type { FormEvent } from 'react';
 
 /**
  * Login que só precisa fazer uma coisa: dizer se é Sonia ou Mirella.
@@ -21,7 +22,7 @@ export function SeletorDeCuradora({ exigeSenha }: { exigeSenha: boolean }) {
   const [erro, setErro] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
 
-  async function entrar(evento: React.FormEvent): Promise<void> {
+  async function entrar(evento: FormEvent): Promise<void> {
     evento.preventDefault();
     setErro(null);
     setEnviando(true);

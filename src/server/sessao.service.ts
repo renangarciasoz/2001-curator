@@ -115,6 +115,8 @@ export async function gravarMensagem(
       data: {
         sessaoId,
         autor,
+        // Fronteira de serialização: os blocos da Messages API são JSON puro,
+        // mas o tipo do Prisma para uma coluna Json não os aceita diretamente.
         blocos: blocos as unknown as object[],
         ordem: (ultima?.ordem ?? -1) + 1,
       },

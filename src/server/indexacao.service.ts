@@ -4,6 +4,7 @@ import { db } from './db.service';
 import { obterProviderDeEmbeddings } from './embeddings/embeddings.service';
 import { garantirColecao, indexarFilmes } from './qdrant.service';
 
+import type { ProviderDeEmbeddings } from './embeddings/embeddings.service';
 import type { PontoDeFilme } from './qdrant.service';
 
 const TAMANHO_DO_LOTE = 32;
@@ -118,7 +119,7 @@ export async function indexarAcervo(
 
 async function indexarLote(
   lote: readonly FilmeIndexavel[],
-  provider: ReturnType<typeof obterProviderDeEmbeddings>,
+  provider: ProviderDeEmbeddings,
 ): Promise<number> {
   const vetores = await provider.gerar(lote.map(textoParaEmbedding), 'documento');
 

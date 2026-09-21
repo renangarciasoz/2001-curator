@@ -140,7 +140,7 @@ export async function registrarDescarteNovo(input: DescartarNovoInput): Promise<
     data: {
       ...(input.sessao_id !== undefined ? { sessaoId: input.sessao_id } : {}),
       pedidoDoUsuario: input.pedido_do_usuario,
-      perguntasDaIa: input.perguntas_da_ia as Prisma.InputJsonValue,
+      perguntasDaIa: input.perguntas_da_ia,
       recomendacaoDaIa: input.recomendacao_da_ia,
       avaliadoPor: input.avaliado_por,
       notaDaDivergencia: `Descartado sem esclarecimento. Motivo registrado: ${input.motivo}`,
@@ -169,7 +169,7 @@ async function persistir(
 ): Promise<string> {
   const dados = {
     pedidoDoUsuario: input.pedido_do_usuario,
-    perguntasDaIa: input.perguntas_da_ia as Prisma.InputJsonValue,
+    perguntasDaIa: input.perguntas_da_ia,
     recomendacaoDaIa: input.recomendacao_da_ia,
     correcao: decisao.correcao,
     porqueDaCorrecao: decisao.porqueDaCorrecao,

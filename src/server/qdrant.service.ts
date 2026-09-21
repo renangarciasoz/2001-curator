@@ -139,6 +139,7 @@ export async function buscarPorVetor(
       ...(condicoes.length > 0 ? { filter: { must: condicoes } } : {}),
     });
 
+
     return resposta.points.map((ponto) => ({
       filmeId: String(ponto.id),
       proximidade: ponto.score,
@@ -150,46 +151,53 @@ export async function buscarPorVetor(
   }
 }
 
+/**
+ * Tamanho do vetor da coleção, ou `null` se ela não existe.
+ *
+ * O campo `vectors` da resposta pode ser um único conjunto de parâmetros ou um
+ * mapa de vetores nomeados. Esta coleção usa o formato simples; em vez de
+ * depender da forma exata do tipo do cliente, a leitura é defensiva.
+ */
 async function descreverColecao(nome: string): Promise<{ dimensoes: number } | null> {
   try {
     const info = await cliente().getCollection(nome);
-    const vetores = info.config.params.vectors;
+    const vetores: unknown = info.config.params.vectors;
 
-    if (vetores === undefined || typeof vetores.size !== 'number') {
+    if (typeof vetores !== 'object' || vetores === null) {
       return null;
     }
 
-    return { dimensoes: vetores.size };
+    const tamanho: unknown = Reflect.get(vetores, 'size');
+
+    return typeof tamanho === 'number' ? { dimensoes: tamanho } : null;
   } catch {
     // O cliente lança quando a coleção não existe; ausência não é erro aqui.
     return null;
   }
 }
 
-function montarCondicoes(filtro?: FiltroDeBusca): readonly Record<string, unknown>[] {
+function montarCondicoes(filtro?: FiltroDeBusca) {
   if (filtro === undefined) {
     return [];
   }
 
-  const condicoes: Record<string, unknown>[] = [];
+  const candidatas = [
+    filtro.categoriaAcervo !== undefined
+      ? { key: 'categoria_acervo', match: { value: filtro.categoriaAcervo } }
+      : null,
+    filtro.registroComercial !== undefined
+      ? { key: 'registro_comercial', match: { value: filtro.registroComercial } }
+      : null,
+    filtro.anoMinimo !== undefined || filtro.anoMaximo !== undefined
+      ? {
+          key: 'ano',
+          range: {
+            ...(filtro.anoMinimo !== undefined ? { gte: filtro.anoMinimo } : {}),
+            ...(filtro.anoMaximo !== undefined ? { lte: filtro.anoMaximo } : {}),
+          },
+        }
+      : null,
+  ];
 
-  if (filtro.categoriaAcervo !== undefined) {
-    condicoes.push({ key: 'categoria_acervo', match: { value: filtro.categoriaAcervo } });
-  }
-
-  if (filtro.registroComercial !== undefined) {
-    condicoes.push({ key: 'registro_comercial', match: { value: filtro.registroComercial } });
-  }
-
-  if (filtro.anoMinimo !== undefined || filtro.anoMaximo !== undefined) {
-    condicoes.push({
-      key: 'ano',
-      range: {
-        ...(filtro.anoMinimo !== undefined ? { gte: filtro.anoMinimo } : {}),
-        ...(filtro.anoMaximo !== undefined ? { lte: filtro.anoMaximo } : {}),
-      },
-    });
-  }
-
-  return condicoes;
+  return candidatas.filter((condicao) => condicao !== null);
 }
