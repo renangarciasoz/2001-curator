@@ -3,10 +3,11 @@
 import { useRef, useState } from 'react';
 
 import { readSseEvents } from '@/lib/sse-events.util';
+import { isArchiveTool } from '@/lib/transcript.type';
 
 import { CorrectionPanel } from './correction-panel.component';
 
-import type { TranscriptTurn } from '@/lib/transcript.type';
+import type { Transcript, TranscriptTurn } from '@/lib/transcript.type';
 
 /** Mirrors `IndicadorEvent` from the orchestrator, on the browser side. */
 type IndicadorEvent =
@@ -52,14 +53,15 @@ export function IndicatorChat({
 }: {
   sessionId: string;
   curator: string;
-  initialTranscript: readonly TranscriptTurn[];
+  initialTranscript: Transcript;
 }) {
-  const [turns, setTurns] = useState<readonly TranscriptTurn[]>(initialTranscript);
+  const [turns, setTurns] = useState<readonly TranscriptTurn[]>(initialTranscript.turns);
   const [draft, setDraft] = useState('');
   const [inFlight, setInFlight] = useState(false);
   const [tool, setTool] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [reviewing, setReviewing] = useState(false);
+  const [hasRecommended, setHasRecommended] = useState(initialTranscript.hasRecommended);
 
   const partial = useRef('');
 
@@ -111,6 +113,12 @@ export function IndicatorChat({
 
       case 'tool':
         setTool(event.state === 'start' ? (TOOL_LABEL[event.name] ?? event.name) : null);
+
+        // Reaching the archive is what turns a question into a recommendation,
+        // and a recommendation is the only thing there is to review.
+        if (isArchiveTool(event.name)) {
+          setHasRecommended(true);
+        }
         break;
 
       case 'refusal':
@@ -238,7 +246,7 @@ export function IndicatorChat({
 
           <button
             type="button"
-            disabled={inFlight || lastRecommendation.length === 0}
+            disabled={inFlight || !hasRecommended || lastRecommendation.length === 0}
             className="btn btn-quiet"
             onClick={() => {
               setReviewing((open) => !open);
@@ -247,6 +255,14 @@ export function IndicatorChat({
             {reviewing ? 'Fechar avaliação' : 'Avaliar esta recomendação'}
           </button>
         </div>
+
+        {!hasRecommended && turns.length > 0 && !inFlight ? (
+          <p className="mt-4 text-[14px] leading-relaxed text-ink-soft text-pretty">
+            O Indicador ainda está entendendo o pedido — ele pergunta antes de indicar, de
+            propósito. Responda e ele vai ao acervo; a avaliação abre quando houver uma
+            indicação para corrigir.
+          </p>
+        ) : null}
       </form>
 
       {reviewing ? (

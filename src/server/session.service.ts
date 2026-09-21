@@ -1,10 +1,11 @@
 import 'server-only';
 
 import { SessionNotFoundError } from '@/lib/app-error.util';
+import { isArchiveTool } from '@/lib/transcript.type';
 
 import { db } from './db.service';
 
-import type { TranscriptTurn } from '@/lib/transcript.type';
+import type { Transcript, TranscriptTurn } from '@/lib/transcript.type';
 import type Anthropic from '@anthropic-ai/sdk';
 import type { Curator, MessageAuthor, Prisma } from '@prisma/client';
 
@@ -72,10 +73,10 @@ export async function loadSession(sessionId: string): Promise<LoadedSession> {
  * not the plumbing. They remain intact in the database because the loop needs
  * them on every turn.
  */
-export async function loadTranscript(sessionId: string): Promise<readonly TranscriptTurn[]> {
+export async function loadTranscript(sessionId: string): Promise<Transcript> {
   const session = await loadSession(sessionId);
 
-  return session.history.flatMap((message) => {
+  const turns = session.history.flatMap<TranscriptTurn>((message) => {
     const text = extractText(message.content);
 
     if (text.length === 0) {
@@ -84,6 +85,19 @@ export async function loadTranscript(sessionId: string): Promise<readonly Transc
 
     return [{ author: message.role === 'assistant' ? 'INDICADOR' : 'CURATOR', text }];
   });
+
+  return { turns, hasRecommended: session.history.some(consultedArchive) };
+}
+
+/** Did this message reach for the archive? Tool blocks survive the reload; text alone does not. */
+function consultedArchive(message: Anthropic.Beta.BetaMessageParam): boolean {
+  if (typeof message.content === 'string') {
+    return false;
+  }
+
+  return message.content.some(
+    (block) => block.type === 'tool_use' && isArchiveTool(block.name),
+  );
 }
 
 function extractText(content: Anthropic.Beta.BetaMessageParam['content']): string {
