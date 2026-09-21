@@ -2,7 +2,7 @@ import 'server-only';
 
 import Anthropic from '@anthropic-ai/sdk';
 
-import { describeError } from '@/lib/app-error.util';
+import { AppError, ProviderUnavailableError, describeError } from '@/lib/app-error.util';
 import { METHOD_SYSTEM_PROMPT } from '@/method/system-prompt.constant';
 
 import {
@@ -182,10 +182,33 @@ function translateFailure(e: unknown): { code: string; message: string } {
   }
 
   if (e instanceof Anthropic.APIError) {
+    console.error(`Anthropic API failure: ${describeError(e)}`);
+
     return {
       code: 'api_failure',
       message: `O Indicador não conseguiu responder (HTTP ${String(e.status ?? 0)}).`,
     };
+  }
+
+  // A missing credential is the most common failure on a fresh checkout, and
+  // the fix is one line in `.env`. Collapsing it into "something went wrong"
+  // sends whoever is setting the tool up hunting through logs for no reason.
+  if (e instanceof ProviderUnavailableError) {
+    console.error(`Provider ${e.provider} unavailable: ${e.message}`);
+
+    return {
+      code: e.code,
+      message:
+        e.provider === 'anthropic'
+          ? 'O chat precisa da ANTHROPIC_API_KEY, que não está configurada no .env.'
+          : `O Indicador não conseguiu alcançar ${e.provider}. Confira a configuração no .env.`,
+    };
+  }
+
+  if (e instanceof AppError) {
+    console.error(`Domain error ${e.code}: ${e.message}`);
+
+    return { code: e.code, message: 'O Indicador não conseguiu concluir esta conversa.' };
   }
 
   console.error(`Conversation failed: ${describeError(e)}`);
