@@ -8,9 +8,6 @@
 next-env.d.ts
 *.tsbuildinfo
 
-# cliente Prisma gerado (recriado por `pnpm db:generate`)
-/src/generated/
-
 # segredos — nunca versionados. O contrato de chaves vive em .env.example
 .env
 .env.*

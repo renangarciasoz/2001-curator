@@ -10,7 +10,7 @@ import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
   {
-    ignores: ['.next/**', 'node_modules/**', 'dist/**', 'src/generated/**', 'next-env.d.ts'],
+    ignores: ['.next/**', 'node_modules/**', 'dist/**', 'next-env.d.ts'],
   },
 
   js.configs.recommended,
