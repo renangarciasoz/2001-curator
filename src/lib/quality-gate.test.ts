@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
 import { AmbiguousFeedbackError } from './app-error.util';
-
 import { applyQualityGate } from './quality-gate.util';
 
 import type { CuratorReview } from './quality-gate.util';
