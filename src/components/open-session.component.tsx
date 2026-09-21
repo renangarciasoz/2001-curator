@@ -49,38 +49,42 @@ export function OpenSession() {
 
   return (
     <form
-      className="panel"
+      className="border-t-2 border-ink pt-5"
       onSubmit={(event) => {
         event.preventDefault();
         void open();
       }}
     >
-      <label htmlFor="userId">Persona do espectador (opcional)</label>
-      <input
-        id="userId"
-        type="text"
-        value={userId}
-        placeholder="ex.: cliente-premium-ana"
-        onChange={(event) => {
-          setUserId(event.target.value);
-        }}
-      />
-      <p className="muted">
-        Use o mesmo identificador para continuar a história de um espectador entre sessões. Deixe em
-        branco para uma conversa avulsa.
-      </p>
+      <label htmlFor="userId" className="label-caps mb-2 block">
+        Persona do espectador — opcional
+      </label>
 
-      {error !== null ? (
-        <p className="notice notice-error" role="alert">
-          {error}
-        </p>
-      ) : null}
-
-      <div className="actions">
-        <button type="submit" disabled={opening}>
+      <div className="flex flex-col gap-3 sm:flex-row">
+        <input
+          id="userId"
+          type="text"
+          value={userId}
+          placeholder="cliente-premium-ana"
+          className="field font-label sm:flex-1"
+          onChange={(event) => {
+            setUserId(event.target.value);
+          }}
+        />
+        <button type="submit" disabled={opening} className="btn btn-primary justify-center">
           {opening ? 'Abrindo…' : 'Começar uma conversa'}
         </button>
       </div>
+
+      <p className="mt-3 text-[14px] leading-relaxed text-ink-soft">
+        Use o mesmo identificador para continuar a história de um espectador entre sessões. Em
+        branco, é uma conversa avulsa.
+      </p>
+
+      {error !== null ? (
+        <p className="note note-alert mt-4" role="alert">
+          {error}
+        </p>
+      ) : null}
     </form>
   );
 }

@@ -2,7 +2,7 @@ import Link from 'next/link';
 
 import { CuratorPicker } from '@/components/curator-picker.component';
 import { OpenSession } from '@/components/open-session.component';
-import { curatorLabel } from '@/lib/curator.constant';
+import { PageShell } from '@/components/page-shell.component';
 import { currentCurator } from '@/server/auth.service';
 import { db } from '@/server/db.service';
 import { env } from '@/server/env.config';
@@ -12,11 +12,12 @@ export default async function Home() {
 
   if (curator === null) {
     return (
-      <main>
-        <h1>Indicador 2001</h1>
-        <p className="muted">Curadoria da 2001 Vídeo. Ferramenta interna.</p>
+      <PageShell
+        title="Uma curadoria viva."
+        lede="Ferramenta interna da 2001 Vídeo. Entre para começar uma conversa."
+      >
         <CuratorPicker requiresPassword={env.APP_CURATION_PASSWORD.length > 0} />
-      </main>
+      </PageShell>
     );
   }
 
@@ -28,45 +29,59 @@ export default async function Home() {
   ]);
 
   return (
-    <main>
-      <div className="header">
-        <div>
-          <h1>Indicador 2001</h1>
-          <p className="muted">Você entrou como {curatorLabel(curator)}.</p>
-        </div>
-        <Link href="/conversations">Ver conversas registradas</Link>
-      </div>
-
+    <PageShell
+      curator={curator}
+      eyebrow="Edição corrente"
+      title="O acervo hoje"
+      lede="Cada conversa avaliada aqui vira o dado que treina o modelo próprio na Fase 2."
+    >
       <OpenSession />
 
-      <h2>O acervo hoje</h2>
-      <div className="scroll">
-        <table>
-          <tbody>
-            <tr>
-              <th scope="row">Filmes no acervo</th>
-              <td>{films}</td>
-            </tr>
-            <tr>
-              <th scope="row">Com estudo das curadoras</th>
-              <td>
-                {curated}
-                {films > curated ? (
-                  <span className="muted"> — {films - curated} ainda sem camada curatorial</span>
-                ) : null}
-              </td>
-            </tr>
-            <tr>
-              <th scope="row">Conversas absorvidas no dataset</th>
-              <td>{absorbed}</td>
-            </tr>
-            <tr>
-              <th scope="row">Conversas em revisão (divergência)</th>
-              <td>{underReview}</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </main>
+      <dl className="mt-12 grid grid-cols-2 gap-px border border-rule bg-rule sm:grid-cols-4">
+        <Figure label="Filmes" value={films} />
+        <Figure
+          label="Com curadoria"
+          value={curated}
+          footnote={films > curated ? `${String(films - curated)} sem estudo` : undefined}
+        />
+        <Figure label="Absorvidas" value={absorbed} />
+        <Figure label="Em revisão" value={underReview} accent={underReview > 0} />
+      </dl>
+
+      <p className="mt-6 text-[15px] leading-relaxed text-ink-soft">
+        <Link href="/conversations" className="text-accent underline underline-offset-4">
+          Ver as conversas registradas
+        </Link>{' '}
+        — e baixar o dataset.
+      </p>
+    </PageShell>
+  );
+}
+
+function Figure({
+  label,
+  value,
+  footnote,
+  accent = false,
+}: {
+  label: string;
+  value: number;
+  footnote?: string | undefined;
+  accent?: boolean;
+}) {
+  return (
+    <div className="bg-paper-raised px-4 py-5">
+      <dt className="label-caps">{label}</dt>
+      <dd
+        className={`font-display text-[32px] leading-none tracking-tight ${
+          accent ? 'text-accent' : ''
+        }`}
+      >
+        {value}
+      </dd>
+      {footnote !== undefined ? (
+        <p className="mt-1.5 font-label text-[11px] text-ink-faint">{footnote}</p>
+      ) : null}
+    </div>
   );
 }

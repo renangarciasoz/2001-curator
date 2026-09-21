@@ -3,7 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
-import { CURATORS, curatorLabel, isCurator } from '@/lib/curator.constant';
+import { CURATORS, curatorLabel } from '@/lib/curator.constant';
 
 import type { CuratorName } from '@/lib/curator.constant';
 
@@ -12,7 +12,8 @@ import type { CuratorName } from '@/lib/curator.constant';
  *
  * That distinction is not interface comfort — it is what makes every review
  * traceable. Without it the quality gate cannot tell agreement from
- * disagreement from a single reading.
+ * disagreement from a single reading. Hence two big named choices rather than
+ * a dropdown: picking the wrong one corrupts attribution in the dataset.
  */
 export function CuratorPicker({ requiresPassword }: { requiresPassword: boolean }) {
   const router = useRouter();
@@ -45,52 +46,66 @@ export function CuratorPicker({ requiresPassword }: { requiresPassword: boolean 
 
   return (
     <form
-      className="panel"
       onSubmit={(event) => {
         event.preventDefault();
         void signIn();
       }}
     >
-      <label htmlFor="curator">Quem está entrando</label>
-      <select
-        id="curator"
-        value={curator}
-        onChange={(event) => {
-          if (isCurator(event.target.value)) {
-            setCurator(event.target.value);
-          }
-        }}
-      >
-        {CURATORS.map((name) => (
-          <option key={name} value={name}>
-            {curatorLabel(name)}
-          </option>
-        ))}
-      </select>
+      <fieldset>
+        <legend className="label-caps mb-3">Quem está entrando</legend>
+
+        <div className="grid grid-cols-2 gap-px border border-rule bg-rule">
+          {CURATORS.map((name) => (
+            <label
+              key={name}
+              className={`cursor-pointer px-4 py-5 text-center transition-colors ${
+                curator === name
+                  ? 'bg-accent-soft text-accent'
+                  : 'bg-paper-raised text-ink-soft hover:text-ink'
+              }`}
+            >
+              <input
+                type="radio"
+                name="curator"
+                value={name}
+                checked={curator === name}
+                className="sr-only"
+                onChange={() => {
+                  setCurator(name);
+                }}
+              />
+              <span className="font-display text-[26px] leading-none">{curatorLabel(name)}</span>
+            </label>
+          ))}
+        </div>
+      </fieldset>
 
       {requiresPassword ? (
-        <>
-          <label htmlFor="password">Senha de curadoria</label>
+        <div className="mt-6">
+          <label htmlFor="password" className="label-caps mb-2 block">
+            Senha de curadoria
+          </label>
           <input
             id="password"
             type="password"
             value={password}
             autoComplete="current-password"
+            className="field"
             onChange={(event) => {
               setPassword(event.target.value);
             }}
           />
-        </>
+        </div>
       ) : null}
 
       {error !== null ? (
-        <p className="notice notice-error" role="alert">
+        <p className="note note-alert mt-6" role="alert">
           {error}
         </p>
       ) : null}
 
-      <div className="actions">
-        <button type="submit" disabled={submitting}>
+      <div className="mt-8">
+        <button type="submit" disabled={submitting} className="btn btn-primary">
           {submitting ? 'Entrando…' : 'Entrar'}
         </button>
       </div>

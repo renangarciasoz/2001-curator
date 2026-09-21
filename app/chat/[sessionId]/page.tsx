@@ -1,8 +1,7 @@
-import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 
 import { IndicatorChat } from '@/components/indicator-chat.component';
-import { curatorLabel } from '@/lib/curator.constant';
+import { PageShell } from '@/components/page-shell.component';
 import { currentCurator } from '@/server/auth.service';
 import { db } from '@/server/db.service';
 import { loadTranscript } from '@/server/session.service';
@@ -34,19 +33,14 @@ export default async function ChatPage({ params }: { params: Promise<{ sessionId
   const transcript = await loadTranscript(sessionId);
 
   return (
-    <main>
-      <div className="header">
-        <div>
-          <h1>Conversa</h1>
-          <p className="muted">
-            {curatorLabel(curator)}
-            {session.profile !== null ? ` · persona ${session.profile.userId}` : ' · sem persona'}
-          </p>
-        </div>
-        <Link href="/">Início</Link>
-      </div>
-
+    <PageShell
+      curator={curator}
+      eyebrow={
+        session.profile !== null ? `Persona · ${session.profile.userId}` : 'Conversa avulsa'
+      }
+      title="Conversa"
+    >
       <IndicatorChat sessionId={sessionId} curator={curator} initialTranscript={transcript} />
-    </main>
+    </PageShell>
   );
 }

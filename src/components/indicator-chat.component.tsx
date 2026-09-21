@@ -151,29 +151,54 @@ export function IndicatorChat({
 
   return (
     <>
-      <div className="transcript">
-        {turns.map((turn, position) => (
-          <div
-            // The transcript only grows at the end; the position is stable by construction.
-            key={`${String(position)}-${turn.author}`}
-            className={`turn ${turn.author === 'CURATOR' ? 'turn-curator' : 'turn-indicador'}`}
-          >
-            <span className="speaker">{turn.author === 'CURATOR' ? 'Você' : 'O Indicador'}</span>
-            {turn.text}
-          </div>
-        ))}
-      </div>
+      {turns.length === 0 ? (
+        <p className="text-[15px] leading-relaxed text-ink-soft italic">
+          Traga um pedido real, ou teste uma persona de espectador. O Indicador vai perguntar
+          antes de indicar.
+        </p>
+      ) : (
+        <div className="space-y-8">
+          {turns.map((turn, position) => (
+            <article
+              // The transcript only grows at the end; the position is stable by construction.
+              key={`${String(position)}-${turn.author}`}
+              className={`border-l-2 pl-5 ${
+                turn.author === 'CURATOR' ? 'border-rule' : 'border-accent'
+              }`}
+            >
+              <p className="label-caps mb-2">
+                {turn.author === 'CURATOR' ? 'Você' : 'O Indicador'}
+              </p>
+              <div
+                className={`text-[17px] leading-[1.7] whitespace-pre-wrap ${
+                  turn.author === 'CURATOR' ? 'text-ink-soft' : 'text-ink'
+                }`}
+              >
+                {turn.text}
+              </div>
+            </article>
+          ))}
+        </div>
+      )}
 
-      {tool !== null ? <p className="tool-status">O Indicador está {tool}…</p> : null}
+      {tool !== null ? (
+        <p className="mt-6 flex items-center gap-2 font-label text-[13px] text-ink-faint italic">
+          <span
+            aria-hidden="true"
+            className="inline-block size-1.5 animate-pulse rounded-full bg-accent"
+          />
+          O Indicador está {tool}…
+        </p>
+      ) : null}
 
       {error !== null ? (
-        <p className="notice notice-error" role="alert">
+        <p className="note note-alert mt-6" role="alert">
           {error}
         </p>
       ) : null}
 
       <form
-        className="panel"
+        className="mt-10 border-t-2 border-ink pt-5"
         onSubmit={(event) => {
           event.preventDefault();
 
@@ -187,25 +212,34 @@ export function IndicatorChat({
           void send(message);
         }}
       >
-        <label htmlFor="message">Sua mensagem</label>
+        <label htmlFor="message" className="label-caps mb-2 block">
+          Sua mensagem
+        </label>
         <textarea
           id="message"
           value={draft}
+          rows={3}
           disabled={inFlight}
-          placeholder="Traga um pedido real, ou teste uma persona de espectador."
+          placeholder="Minha mãe acabou de perder o pai e quer chorar sem se destruir."
+          className="field resize-y disabled:opacity-60"
           onChange={(event) => {
             setDraft(event.target.value);
           }}
         />
 
-        <div className="actions">
-          <button type="submit" disabled={inFlight || draft.trim().length === 0}>
+        <div className="mt-4 flex flex-wrap items-center gap-3">
+          <button
+            type="submit"
+            disabled={inFlight || draft.trim().length === 0}
+            className="btn btn-primary"
+          >
             {inFlight ? 'O Indicador está pensando…' : 'Enviar'}
           </button>
 
           <button
             type="button"
             disabled={inFlight || lastRecommendation.length === 0}
+            className="btn btn-quiet"
             onClick={() => {
               setReviewing((open) => !open);
             }}

@@ -188,10 +188,12 @@ docker compose -f compose.yaml -f compose.dev.yaml exec -T postgres \
 app/                      App Router routes (thin: route concerns, auth, composition)
   api/auth|session|chat|feedback|export/route.ts
   chat/[sessionId]/       The conversation page
-  conversations/          The dataset, as a table
+  conversations/          The dataset, as a reading list
+  globals.css             The Tailwind theme — palette, type scale, shared controls
 src/
   method/system-prompt.constant.ts   The 2001 Method — Portuguese prose, for the curators to edit
   components/             Interface (client components)
+    page-shell.component.tsx   Masthead and reading column, shared by every page
   lib/                    Types and pure logic shared by server and browser
     quality-gate.util.ts  The feedback rules — no I/O, so both sides use them
   server/                 Everything server-only (marked with `server-only`)
@@ -257,6 +259,16 @@ real archive.
 `ANTHROPIC_MODEL`. The request declares a server-side fallback in case of a
 policy refusal — unlikely in a film product, but a conversation that dies
 mid-turn with no explanation is worse than one served by the previous model.
+
+**The interface is printed matter, not a dashboard.** Tailwind v4, with the
+theme in `app/globals.css` rather than a JS config. The direction is the
+archive's own magazines: warm paper, Instrument Serif for the masthead, Source
+Serif 4 for everything the curators read, Inter in small caps for labels and
+metadata, hairline rules instead of cards, and exactly one accent — ink red.
+Two people read and write long prose here all day, so the reading measure is
+capped near 70 characters and legibility wins wherever it conflicts with
+decoration. The dataset page is the one view that gets a wider column, because
+it is scanned rather than read.
 
 **`compose.yaml` / `compose.dev.yaml`, not `docker-compose.yml`.** The spec
 asked for "docker-compose"; the EPCVIP standard requires the Compose Spec's
