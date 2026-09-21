@@ -16,10 +16,13 @@ import { loadFilmFixture, saveFactualLayer } from '../src/server/archive.service
 import { db } from '../src/server/db.service';
 import { fetchFilmFromTmdb, hasTmdbCredential, searchTmdbIds } from '../src/server/tmdb.service';
 
+import { cliArgs } from './cli-args.util';
+
 import type { FactualFilm } from '../src/server/tmdb.service';
 
 async function main(): Promise<void> {
   const { values } = parseArgs({
+    args: [...cliArgs()],
     options: {
       id: { type: 'string', multiple: true, default: [] },
       title: { type: 'string', multiple: true, default: [] },

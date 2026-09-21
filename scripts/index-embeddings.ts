@@ -14,8 +14,11 @@ import { describeError } from '../src/lib/app-error.util';
 import { db } from '../src/server/db.service';
 import { indexArchive } from '../src/server/indexing.service';
 
+import { cliArgs } from './cli-args.util';
+
 async function main(): Promise<void> {
   const { values } = parseArgs({
+    args: [...cliArgs()],
     options: {
       all: { type: 'boolean', default: false },
       recreate: { type: 'boolean', default: false },

@@ -21,6 +21,8 @@ import { describeError } from '../src/lib/app-error.util';
 import { ARCHIVE_CATEGORIES } from '../src/lib/taxonomy.constant';
 import { db } from '../src/server/db.service';
 
+import { cliArgs } from './cli-args.util';
+
 const SEED_PATH = path.join('data', 'demo-curation.json');
 
 const SeedSchema = z.object({
@@ -69,7 +71,10 @@ const SeedSchema = z.object({
 });
 
 async function main(): Promise<void> {
-  const { values } = parseArgs({ options: { clear: { type: 'boolean', default: false } } });
+  const { values } = parseArgs({
+    args: [...cliArgs()],
+    options: { clear: { type: 'boolean', default: false } },
+  });
 
   if (values.clear) {
     await clear();
