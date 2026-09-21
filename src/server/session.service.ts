@@ -89,6 +89,68 @@ export async function loadTranscript(sessionId: string): Promise<Transcript> {
   return { turns, hasRecommended: session.history.some(consultedArchive) };
 }
 
+/** How long an opening line stays before the list starts wrapping badly. */
+const OPENING_LENGTH = 140;
+
+export type SessionSummary = {
+  readonly sessionId: string;
+  readonly persona: string | null;
+  /** The curator's first message — what the conversation is recognisably about. */
+  readonly opening: string;
+  readonly turns: number;
+  readonly lastActivity: Date;
+};
+
+/**
+ * The curator's recent conversations, most recently touched first.
+ *
+ * Without this the only way back into a session is its UUID in the URL, which
+ * means closing the tab loses the conversation in practice even though every
+ * message is on disk.
+ *
+ * Sessions that were opened and never used are left out: they are an artifact
+ * of clicking the button, not work anyone wants to return to.
+ */
+export async function listSessions(
+  curator: Curator,
+  limit = 20,
+): Promise<readonly SessionSummary[]> {
+  const sessions = await db.session.findMany({
+    where: { curator, messages: { some: {} } },
+    select: {
+      id: true,
+      updatedAt: true,
+      profile: { select: { userId: true } },
+      messages: { select: { blocks: true }, orderBy: { position: 'asc' }, take: 1 },
+      _count: { select: { messages: true } },
+    },
+    orderBy: { updatedAt: 'desc' },
+    take: limit,
+  });
+
+  return sessions.map((session) => ({
+    sessionId: session.id,
+    persona: session.profile?.userId ?? null,
+    opening: summarize(session.messages[0]?.blocks),
+    turns: session._count.messages,
+    lastActivity: session.updatedAt,
+  }));
+}
+
+function summarize(blocks: Prisma.JsonValue | undefined): string {
+  if (blocks === undefined) {
+    return 'Conversa sem abertura registrada';
+  }
+
+  const text = extractText(readBlocks(blocks));
+
+  if (text.length <= OPENING_LENGTH) {
+    return text;
+  }
+
+  return `${text.slice(0, OPENING_LENGTH).trimEnd()}…`;
+}
+
 /** Did this message reach for the archive? Tool blocks survive the reload; text alone does not. */
 function consultedArchive(message: Anthropic.Beta.BetaMessageParam): boolean {
   if (typeof message.content === 'string') {
