@@ -35,9 +35,7 @@ export default async function ChatPage({ params }: { params: Promise<{ sessionId
   return (
     <PageShell
       curator={curator}
-      eyebrow={
-        session.profile !== null ? `Persona · ${session.profile.userId}` : 'Conversa avulsa'
-      }
+      eyebrow={session.profile !== null ? `Persona · ${session.profile.userId}` : 'Conversa avulsa'}
       title="Conversa"
     >
       <IndicatorChat sessionId={sessionId} curator={curator} initialTranscript={transcript} />

@@ -70,7 +70,7 @@ export default tseslint.config(
   },
 
   {
-    files: ['eslint.config.mjs', 'next.config.ts', 'vitest.config.ts'],
+    files: ['eslint.config.mjs', 'next.config.ts', 'postcss.config.mjs', 'vitest.config.ts'],
     ...tseslint.configs.disableTypeChecked,
   },
 );

@@ -171,8 +171,8 @@ export function CorrectionPanel({
         Avaliar a recomendação
       </h2>
       <p className="mt-2 text-[15px] leading-relaxed text-ink-soft text-pretty">
-        O que vale aqui é o porquê. Uma correção sem justificativa não é gravada — é ela que
-        ensina o modelo na Fase 2.
+        O que vale aqui é o porquê. Uma correção sem justificativa não é gravada — é ela que ensina
+        o modelo na Fase 2.
       </p>
 
       <div className="mt-7 space-y-5">
@@ -203,9 +203,7 @@ export function CorrectionPanel({
               }}
             >
               <span className="font-display text-[20px] leading-none">{curatorLabel(name)}</span>
-              <span className="label-caps ml-2">
-                avaliou{name === curator ? ' · você' : ''}
-              </span>
+              <span className="label-caps ml-2">avaliou{name === curator ? ' · você' : ''}</span>
             </Check>
 
             {reviews[name].participates ? (

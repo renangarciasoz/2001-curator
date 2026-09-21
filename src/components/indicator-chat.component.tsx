@@ -153,8 +153,8 @@ export function IndicatorChat({
     <>
       {turns.length === 0 ? (
         <p className="text-[15px] leading-relaxed text-ink-soft italic">
-          Traga um pedido real, ou teste uma persona de espectador. O Indicador vai perguntar
-          antes de indicar.
+          Traga um pedido real, ou teste uma persona de espectador. O Indicador vai perguntar antes
+          de indicar.
         </p>
       ) : (
         <div className="space-y-8">

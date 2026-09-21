@@ -328,17 +328,21 @@ Green so far: `pnpm install`, `pnpm db:generate`, `pnpm typecheck`,
 `pnpm format`, `pnpm lint`. The `package.json` shape and both Compose files also
 pass their respective validators.
 
+Both migrations have been applied to a real PostgreSQL 18 and the eleven CHECK
+constraints exercised against it — sixteen assertions covering curation
+traceability, the mandatory why on a bridge, and every branch of the feedback
+gate. Demonstration data signed by a curator is refused; a correction without a
+reason is refused; a disagreement that elects a winner, skips review, or drops
+one of the two readings is refused; the legitimate shapes are accepted.
+
 **Never executed yet** — treat as unproven until you run it:
 
 - `pnpm test` — the suite was fixed after failing on a config bug; re-run it.
-- `pnpm db:migrate:deploy` against a real Postgres. The migration SQL is
-  hand-written to match `schema.prisma`; `pnpm db:migrate:verify` is what proves
-  it, and it has not been run.
-- The CHECK constraints in `20260921120100_why_is_mandatory`. Nothing has
-  exercised them; `prisma migrate diff` cannot see them either.
-- Every network path: TMDB ingestion, Voyage embeddings, Qdrant indexing and
-  search, and the Anthropic conversation loop.
-- The app itself — no page has ever been rendered.
+- `pnpm db:migrate:verify`. The constraint work above proves the SQL runs and
+  behaves; it does not prove the migrations reproduce `schema.prisma` exactly.
+- Every network path: TMDB ingestion, Voyage or OpenAI embeddings, Qdrant
+  indexing and search, and the Anthropic conversation loop.
+- The interface beyond a first render — no conversation has completed a turn.
 
 The full check, in order:
 
