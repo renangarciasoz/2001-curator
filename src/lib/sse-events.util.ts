@@ -1,14 +1,16 @@
 /**
- * Reads a `text/event-stream` body and yields one object per event.
+ * Reads a `text/event-stream` body and yields one parsed payload per event.
  *
  * A network chunk does not respect event boundaries: it can cut a JSON payload
  * in half or carry three events at once. That is what the buffer is for —
  * without it the chat loses text intermittently, in a way that is hard to
  * reproduce.
+ *
+ * Payloads come back as `unknown` on purpose. This is a deserialization
+ * boundary, so the caller narrows to its own event type instead of the reader
+ * asserting a shape it cannot verify.
  */
-export async function* readSseEvents<TEvent>(
-  body: ReadableStream<Uint8Array>,
-): AsyncGenerator<TEvent> {
+export async function* readSseEvents(body: ReadableStream<Uint8Array>): AsyncGenerator<unknown> {
   const reader = body.getReader();
   const decoder = new TextDecoder();
 
@@ -32,10 +34,10 @@ export async function* readSseEvents<TEvent>(
         buffer = buffer.slice(boundary + 2);
         boundary = buffer.indexOf('\n\n');
 
-        const event = parseEvent<TEvent>(raw);
+        const parsed = parseEvent(raw);
 
-        if (event !== null) {
-          yield event;
+        if (parsed.ok) {
+          yield parsed.value;
         }
       }
     }
@@ -44,19 +46,24 @@ export async function* readSseEvents<TEvent>(
   }
 }
 
-function parseEvent<TEvent>(raw: string): TEvent | null {
+/**
+ * A result wrapper rather than `unknown | null`: an event whose payload is
+ * literally `null` is still an event, and must not be confused with "no event
+ * here".
+ */
+function parseEvent(raw: string): { ok: true; value: unknown } | { ok: false } {
   const line = raw.split('\n').find((candidate) => candidate.startsWith('data: '));
 
   if (line === undefined) {
-    return null;
+    return { ok: false };
   }
 
   try {
-    const parsed: unknown = JSON.parse(line.slice('data: '.length));
+    const value: unknown = JSON.parse(line.slice('data: '.length));
 
-    return parsed as TEvent;
+    return { ok: true, value };
   } catch {
     // Event truncated by a dropped connection: ignoring beats killing the chat.
-    return null;
+    return { ok: false };
   }
 }

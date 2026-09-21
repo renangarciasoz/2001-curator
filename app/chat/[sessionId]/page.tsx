@@ -25,9 +25,13 @@ export default async function ChatPage({
     select: { id: true, curator: true, profile: { select: { userId: true } } },
   });
 
+  if (session === null) {
+    notFound();
+  }
+
   // One curator does not enter the other's session: attributing each review in
   // the dataset depends on who was actually having the conversation.
-  if (session === null || session.curator !== curator) {
+  if (session.curator !== curator) {
     notFound();
   }
 

@@ -28,7 +28,18 @@ export default tseslint.config(
       'import-x': importX,
       'unused-imports': unusedImports,
     },
+    settings: {
+      // `@/*` is this project's own path alias. Without this, import-x cannot
+      // resolve it, classifies it as unknown, and sorts it after every declared
+      // group — which is the opposite of the standard's ordering.
+      'import-x/internal-regex': '^@/',
+    },
     rules: {
+      // The TypeScript standard mandates `type` aliases for object shapes, with
+      // `interface` reserved for declaration merging or `extends`. The
+      // typescript-eslint stylistic preset defaults to the opposite, so the
+      // baseline has to flip it back.
+      '@typescript-eslint/consistent-type-definitions': ['error', 'type'],
       'import-x/no-duplicates': 'error',
       'import-x/order': [
         'error',

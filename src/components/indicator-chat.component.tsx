@@ -16,6 +16,27 @@ type IndicadorEvent =
   | { kind: 'end'; fullText: string }
   | { kind: 'error'; code: string; message: string };
 
+const EVENT_KINDS = ['text', 'tool', 'refusal', 'end', 'error'] as const;
+
+/**
+ * Narrows an SSE payload to an orchestrator event.
+ *
+ * Deserialization boundary: the stream comes from this app's own route handler,
+ * so checking the discriminant is enough. A payload with an unrecognised `kind`
+ * is dropped rather than trusted — that is what a version skew between an open
+ * tab and a redeployed server looks like.
+ */
+function toIndicadorEvent(payload: unknown): IndicadorEvent | null {
+  if (typeof payload !== 'object' || payload === null) {
+    return null;
+  }
+
+  const kind: unknown = Reflect.get(payload, 'kind');
+  const known = EVENT_KINDS.some((candidate) => candidate === kind);
+
+  return known ? (payload as IndicadorEvent) : null;
+}
+
 /** Portuguese: shown to the curator while a tool runs. */
 const TOOL_LABEL: Readonly<Record<string, string>> = {
   search_films: 'procurando no acervo',
@@ -66,8 +87,12 @@ export function IndicatorChat({
         return;
       }
 
-      for await (const event of readSseEvents<IndicadorEvent>(response.body)) {
-        apply(event);
+      for await (const payload of readSseEvents(response.body)) {
+        const event = toIndicadorEvent(payload);
+
+        if (event !== null) {
+          apply(event);
+        }
       }
     } catch {
       setError('A conexão caiu no meio da conversa. O que já foi dito está salvo.');

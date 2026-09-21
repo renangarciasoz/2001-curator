@@ -43,8 +43,12 @@ async function requireOwnSession(sessionId: string, curator: string): Promise<vo
     select: { curator: true },
   });
 
-  if (session === null || session.curator !== curator) {
-    // Same answer for "does not exist" and "is not yours": does not reveal which.
+  if (session === null) {
+    throw new SessionNotFoundError(sessionId);
+  }
+
+  if (session.curator !== curator) {
+    // Same answer as "does not exist": does not reveal which of the two it was.
     throw new SessionNotFoundError(sessionId);
   }
 }

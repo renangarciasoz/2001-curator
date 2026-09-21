@@ -22,10 +22,7 @@ async function main(): Promise<void> {
     },
   });
 
-  const result = await indexArchive({
-    all: values.all ?? false,
-    recreate: values.recreate ?? false,
-  });
+  const result = await indexArchive({ all: values.all, recreate: values.recreate });
 
   console.log(
     `Provider ${result.provider} (${result.model}, ` +

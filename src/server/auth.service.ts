@@ -33,7 +33,7 @@ export async function signIn(curator: CuratorName, password: string): Promise<vo
   jar.set(COOKIE_NAME, `${curator}.${sign(curator)}`, {
     httpOnly: true,
     sameSite: 'lax',
-    secure: process.env['NODE_ENV'] === 'production',
+    secure: process.env.NODE_ENV === 'production',
     path: '/',
     maxAge: COOKIE_MAX_AGE_SECONDS,
   });

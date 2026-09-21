@@ -6,7 +6,7 @@ import { db } from './db.service';
 
 import type { TranscriptTurn } from '@/lib/transcript.type';
 import type Anthropic from '@anthropic-ai/sdk';
-import type { Curator, MessageAuthor } from '@prisma/client';
+import type { Curator, MessageAuthor, Prisma } from '@prisma/client';
 
 type ContentBlock = Anthropic.Beta.BetaContentBlockParam;
 
@@ -240,7 +240,7 @@ function addFact(
  * safe degradation if a row is corrupt — better an empty message than an
  * exception that takes down the whole session.
  */
-function readBlocks(value: unknown): ContentBlock[] {
+function readBlocks(value: Prisma.JsonValue): ContentBlock[] {
   if (!Array.isArray(value)) {
     return [];
   }

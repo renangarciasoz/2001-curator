@@ -31,11 +31,8 @@ async function main(): Promise<void> {
     },
   });
 
-  const ids = values.id ?? [];
-  const titles = values.title ?? [];
-
-  const wantsTmdb = ids.length > 0 || titles.length > 0;
-  const useFixture = (values.fixture ?? false) || !wantsTmdb || !hasTmdbCredential();
+  const wantsTmdb = values.id.length > 0 || values.title.length > 0;
+  const useFixture = values.fixture || !wantsTmdb || !hasTmdbCredential();
 
   if (useFixture) {
     if (wantsTmdb && !hasTmdbCredential()) {
@@ -46,7 +43,7 @@ async function main(): Promise<void> {
     return;
   }
 
-  await ingest(await collectFromTmdb(ids, titles), 'TMDB');
+  await ingest(await collectFromTmdb(values.id, values.title), 'TMDB');
 }
 
 async function collectFromTmdb(

@@ -16,9 +16,9 @@ const globalForPrisma = globalThis as typeof globalThis & {
 export const db: PrismaClient =
   globalForPrisma.prismaClient ??
   new PrismaClient({
-    log: process.env['NODE_ENV'] === 'development' ? ['warn', 'error'] : ['error'],
+    log: process.env.NODE_ENV === 'development' ? ['warn', 'error'] : ['error'],
   });
 
-if (process.env['NODE_ENV'] !== 'production') {
+if (process.env.NODE_ENV !== 'production') {
   globalForPrisma.prismaClient = db;
 }

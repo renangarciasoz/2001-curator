@@ -71,7 +71,7 @@ const SeedSchema = z.object({
 async function main(): Promise<void> {
   const { values } = parseArgs({ options: { clear: { type: 'boolean', default: false } } });
 
-  if (values.clear ?? false) {
+  if (values.clear) {
     await clear();
     return;
   }

@@ -6,7 +6,6 @@ import { useState } from 'react';
 import { CURATORS, curatorLabel, isCurator } from '@/lib/curator.constant';
 
 import type { CuratorName } from '@/lib/curator.constant';
-import type { FormEvent } from 'react';
 
 /**
  * A login that only has to do one thing: tell Sonia from Mirella.
@@ -22,8 +21,7 @@ export function CuratorPicker({ requiresPassword }: { requiresPassword: boolean 
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  async function signIn(event: FormEvent): Promise<void> {
-    event.preventDefault();
+  async function signIn(): Promise<void> {
     setError(null);
     setSubmitting(true);
 
@@ -49,7 +47,8 @@ export function CuratorPicker({ requiresPassword }: { requiresPassword: boolean 
     <form
       className="panel"
       onSubmit={(event) => {
-        void signIn(event);
+        event.preventDefault();
+        void signIn();
       }}
     >
       <label htmlFor="curator">Quem está entrando</label>
