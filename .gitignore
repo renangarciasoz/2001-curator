@@ -1,0 +1,27 @@
+# dependências
+/node_modules/
+
+# build do Next.js
+/.next/
+/out/
+/dist/
+next-env.d.ts
+*.tsbuildinfo
+
+# cliente Prisma gerado (recriado por `pnpm db:generate`)
+/src/generated/
+
+# segredos — nunca versionados. O contrato de chaves vive em .env.example
+.env
+.env.*
+!.env.example
+
+# artefatos de exportação do dataset
+/exports/
+
+# SO / editor
+.DS_Store
+*.log
+
+# preferências locais do agente (settings.json compartilhado seria versionado)
+/.claude/settings.local.json
