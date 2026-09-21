@@ -340,22 +340,23 @@ environment — it signs the cookie that decides who a review is attributed to.
 
 ### 2. Postgres
 
-Any managed Postgres works. On serverless, connection exhaustion is the trap:
-every cold start opens a connection, and Postgres runs out long before traffic
-does. Use a provider with a pooler (Neon and Supabase both ship one) and give
-Prisma both URLs:
+**Neon** is the recommendation, over Supabase: this project needs Postgres and
+nothing else, and Supabase's value is the auth, storage and realtime stack
+around it. Neon scales to zero, which matters for a tool used a few times a
+week. Supabase works fine if you would rather have one vendor.
 
-```prisma
-datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")        // pooled — the app
-  directUrl = env("DIRECT_DATABASE_URL") // direct — migrations
-}
-```
+On serverless, connection exhaustion is the trap: every cold start opens a
+connection, and Postgres runs out long before traffic does. `schema.prisma`
+therefore declares two URLs, and both must be set:
 
-That `directUrl` line is **not** in `schema.prisma` yet: adding it makes the
-variable required, which would break local development until it is set. Add it
-when you pick a provider.
+| Variable | Which connection | Used by |
+|---|---|---|
+| `DATABASE_URL` | pooled | the application |
+| `DIRECT_DATABASE_URL` | direct | migrations and introspection |
+
+Locally there is no pooler, so the two are identical. On Neon or Supabase they
+differ, and pointing migrations at the pooler fails on the session-level
+statements they issue.
 
 Migrations run with the direct URL, never from a serverless function. Either
 `pnpm db:migrate:deploy` from your machine against production, or a build step

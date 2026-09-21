@@ -24,7 +24,16 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
+
+  // The app's connection. On a serverless host this must be the *pooled* URL:
+  // every cold start opens a connection, and Postgres runs out long before
+  // traffic does.
+  url = env("DATABASE_URL")
+
+  // Migrations and introspection. These need a direct connection — a pooler
+  // cannot run the session-level statements they issue. Locally there is no
+  // pooler, so both point at the same database.
+  directUrl = env("DIRECT_DATABASE_URL")
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
