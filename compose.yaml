@@ -26,7 +26,9 @@ services:
       - indicador-2001
 
   qdrant:
-    image: qdrant/qdrant:v1.16.1
+    # Keep this minor in step with `@qdrant/js-client-rest` in package.json:
+    # the client refuses a major mismatch and warns past one minor of drift.
+    image: qdrant/qdrant:v1.19.1
     restart: unless-stopped
     volumes:
       - qdrant-data:/qdrant/storage
