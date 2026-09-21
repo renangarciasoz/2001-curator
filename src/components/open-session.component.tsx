@@ -66,8 +66,8 @@ export function OpenSession() {
         }}
       />
       <p className="muted">
-        Use o mesmo identificador para continuar a história de um espectador entre sessões. Deixe
-        em branco para uma conversa avulsa.
+        Use o mesmo identificador para continuar a história de um espectador entre sessões. Deixe em
+        branco para uma conversa avulsa.
       </p>
 
       {error !== null ? (

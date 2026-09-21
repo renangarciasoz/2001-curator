@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { AmbiguousFeedbackError } from '@/lib/app-error.util';
+import { AmbiguousFeedbackError } from './app-error.util';
 
 import { applyQualityGate } from './quality-gate.util';
 
@@ -12,10 +12,7 @@ const GOOD_REASON = 'Ela pediu conforto e a indicação exigia disposição para
 const OTHER_GOOD_REASON =
   'O filme é certo, mas cedo demais no repertório dela — precisa de uma ponte antes.';
 
-function review(
-  curator: 'SONIA' | 'MIRELLA',
-  extra: Partial<CuratorReview> = {},
-): CuratorReview {
+function review(curator: 'SONIA' | 'MIRELLA', extra: Partial<CuratorReview> = {}): CuratorReview {
   return { curator, hasCorrection: false, ...extra };
 }
 

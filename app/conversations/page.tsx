@@ -55,8 +55,8 @@ export default async function ConversationsPage() {
         <div>
           <h1>Conversas registradas</h1>
           <p className="muted">
-            O dataset curatorial. Só as conversas com qualidade <em>absorve</em> são exportadas
-            para a Fase 2.
+            O dataset curatorial. Só as conversas com qualidade <em>absorve</em> são exportadas para
+            a Fase 2.
           </p>
         </div>
         <Link href="/">Início</Link>
@@ -115,14 +115,11 @@ export default async function ConversationsPage() {
                     {conversation.disagreementNote !== null ? (
                       <div className="pre-wrap">{conversation.disagreementNote}</div>
                     ) : null}
-                    {conversation.correction !== null ? (
-                      <div>{conversation.correction}</div>
-                    ) : null}
+                    {conversation.correction !== null ? <div>{conversation.correction}</div> : null}
                     {conversation.correctionReason !== null ? (
                       <div className="muted">Porquê: {conversation.correctionReason}</div>
                     ) : null}
-                    {conversation.disagreementNote === null &&
-                    conversation.correction === null ? (
+                    {conversation.disagreementNote === null && conversation.correction === null ? (
                       <span className="muted">sem correção</span>
                     ) : null}
                   </td>

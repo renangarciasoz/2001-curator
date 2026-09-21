@@ -3,12 +3,11 @@ import 'server-only';
 import { z } from 'zod';
 
 import { ConversationNotFoundError } from '@/lib/app-error.util';
+import { applyQualityGate } from '@/lib/quality-gate.util';
 
 import { db } from '../db.service';
 
-import { applyQualityGate } from './quality-gate.util';
-
-import type { CuratorReview, GateDecision } from './quality-gate.util';
+import type { CuratorReview, GateDecision } from '@/lib/quality-gate.util';
 import type { Prisma } from '@prisma/client';
 
 /** The Method allows at most three options at a time. The schema refuses a fourth. */
@@ -22,7 +21,7 @@ export const RecordFeedbackInputSchema = z.object({
   session_id: z.uuid().optional(),
   profile_id: z.uuid().optional(),
 
-  user_request: z.string().min(1).describe("What the person wanted, in their own words."),
+  user_request: z.string().min(1).describe('What the person wanted, in their own words.'),
   ai_questions: z
     .array(z.string())
     .default([])

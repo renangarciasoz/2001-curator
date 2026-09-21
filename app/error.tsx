@@ -9,13 +9,7 @@ import { useEffect } from 'react';
  * detail. The browser console records it for whoever is debugging; the real log
  * stays on the server.
  */
-export default function ErrorBoundary({
-  error,
-  reset,
-}: {
-  error: Error;
-  reset: () => void;
-}) {
+export default function ErrorBoundary({ error, reset }: { error: Error; reset: () => void }) {
   useEffect(() => {
     console.error(error);
   }, [error]);

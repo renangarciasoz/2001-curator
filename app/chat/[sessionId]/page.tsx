@@ -7,11 +7,7 @@ import { currentCurator } from '@/server/auth.service';
 import { db } from '@/server/db.service';
 import { loadTranscript } from '@/server/session.service';
 
-export default async function ChatPage({
-  params,
-}: {
-  params: Promise<{ sessionId: string }>;
-}) {
+export default async function ChatPage({ params }: { params: Promise<{ sessionId: string }> }) {
   const curator = await currentCurator();
 
   if (curator === null) {
@@ -50,11 +46,7 @@ export default async function ChatPage({
         <Link href="/">Início</Link>
       </div>
 
-      <IndicatorChat
-        sessionId={sessionId}
-        curator={curator}
-        initialTranscript={transcript}
-      />
+      <IndicatorChat sessionId={sessionId} curator={curator} initialTranscript={transcript} />
     </main>
   );
 }

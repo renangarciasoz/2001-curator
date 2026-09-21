@@ -10,7 +10,7 @@
  * boundary, so the caller narrows to its own event type instead of the reader
  * asserting a shape it cannot verify.
  */
-export async function* readSseEvents(body: ReadableStream<Uint8Array>): AsyncGenerator<unknown> {
+export async function* readSseEvents(body: ReadableStream<Uint8Array>): AsyncGenerator {
   const reader = body.getReader();
   const decoder = new TextDecoder();
 

@@ -33,9 +33,7 @@ const TmdbFilmSchema = z.object({
   release_date: z.string().default(''),
   overview: z.string().default(''),
   poster_path: z.string().nullable().default(null),
-  production_countries: z
-    .array(z.object({ iso_3166_1: z.string(), name: z.string() }))
-    .default([]),
+  production_countries: z.array(z.object({ iso_3166_1: z.string(), name: z.string() })).default([]),
   origin_country: z.array(z.string()).default([]),
   credits: z
     .object({
@@ -71,10 +69,7 @@ export async function fetchFilmFromTmdb(
   const result = TmdbFilmSchema.safeParse(raw);
 
   if (!result.success) {
-    throw new ProviderUnavailableError(
-      'TMDB',
-      `unexpected response for film ${String(tmdbId)}`,
-    );
+    throw new ProviderUnavailableError('TMDB', `unexpected response for film ${String(tmdbId)}`);
   }
 
   return normalize(result.data);

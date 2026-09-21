@@ -182,10 +182,7 @@ function buildLine(conversation: ConversationWithFilms): DatasetLine {
   };
 }
 
-function projectFilms(
-  conversation: ConversationWithFilms,
-  role: string,
-): readonly ExportedFilm[] {
+function projectFilms(conversation: ConversationWithFilms, role: string): readonly ExportedFilm[] {
   return conversation.films
     .filter((link) => link.role === role)
     .map(({ film }) => {

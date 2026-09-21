@@ -18,10 +18,7 @@ export type LoadedSession = {
 };
 
 /** Opens a chat session for a curator, optionally tied to a viewer persona. */
-export async function createSession(
-  curator: Curator,
-  profileId: string | null,
-): Promise<string> {
+export async function createSession(curator: Curator, profileId: string | null): Promise<string> {
   const session = await db.session.create({
     data: { curator, ...(profileId !== null ? { profileId } : {}) },
     select: { id: true },
@@ -182,13 +179,7 @@ export async function buildSessionContext(session: LoadedSession): Promise<strin
 
   addFact(lines, openQuestions, 'Gosta de', profile.likes.join(', '), 'o que ela gosta');
   addFact(lines, openQuestions, 'Evita', profile.avoids.join(', '), 'o que ela evita');
-  addFact(
-    lines,
-    openQuestions,
-    'Repertório',
-    profile.repertoire ?? '',
-    'que repertório ela tem',
-  );
+  addFact(lines, openQuestions, 'Repertório', profile.repertoire ?? '', 'que repertório ela tem');
   addFact(lines, openQuestions, 'Momento de vida', profile.lifeMoment ?? '', 'como ela está hoje');
 
   const watched = profile.watchedFilms

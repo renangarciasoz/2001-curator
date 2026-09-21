@@ -1,11 +1,25 @@
-import 'server-only';
-
-import { AmbiguousFeedbackError } from '@/lib/app-error.util';
+/**
+ * The quality gate lives in `lib`, not `server`, and deliberately does not
+ * import `server-only`.
+ *
+ * It is pure domain logic: no database, no environment, no secrets. Keeping it
+ * shared lets the correction panel reuse `MIN_REASON_LENGTH` rather than
+ * duplicate it, and lets the rules be unit-tested without a server runtime.
+ * The Prisma import below is types only, so nothing from the ORM reaches the
+ * browser bundle.
+ */
+import { AmbiguousFeedbackError } from './app-error.util';
 
 import type { Confidence, Consensus, Curator, Quality } from '@prisma/client';
 
-/** A reason shorter than this does not carry a curatorial decision. */
-const MIN_REASON_LENGTH = 15;
+/**
+ * A reason shorter than this does not carry a curatorial decision.
+ *
+ * Exported so the correction panel can enforce the same floor in the browser
+ * instead of keeping its own copy of the number. The gate here remains the
+ * authority — the form field is a convenience, not the rule.
+ */
+export const MIN_REASON_LENGTH = 15;
 
 /**
  * Answers that look like a reason but are not. The list is deliberately short:

@@ -7,8 +7,8 @@ import { getEmbeddingsProvider } from '../embeddings/embeddings.service';
 import { FIELDS_FOR_INDICADOR, projectFilm } from '../film-projection.util';
 import { searchByVector } from '../qdrant.service';
 
-import type { FilmCandidateForIndicador } from '@/lib/film.type';
 import type { SearchFilter } from '../qdrant.service';
+import type { FilmCandidateForIndicador } from '@/lib/film.type';
 
 const DEFAULT_LIMIT = 12;
 const MAX_LIMIT = 20;
@@ -46,11 +46,7 @@ export async function searchFilms(
     return [];
   }
 
-  const candidates = await searchByVector(
-    vector,
-    input.limit ?? DEFAULT_LIMIT,
-    buildFilter(input),
-  );
+  const candidates = await searchByVector(vector, input.limit ?? DEFAULT_LIMIT, buildFilter(input));
 
   if (candidates.length === 0) {
     return [];

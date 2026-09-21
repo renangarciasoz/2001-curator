@@ -20,10 +20,10 @@ protect the quality and integrity of that data.
 
 The principle that constrains the design of this repository the most.
 
-| Bucket | What it is | Trainable? | Where it lives |
-|---|---|---|---|
-| **The 2001 archive's own content** | Emotional tone, what the film provokes, curatorial notes, historical context, the connections between films and the reason for each, the curators' corrections | **Yes** | The curatorial columns of `film`, plus the `connection`, `journey`, `editorial_list` and `conversation` tables |
-| **Third-party content** | Technical record and synopsis from TMDB | **No — live lookup only** | The factual columns of `film`, tagged with `factual_source` |
+| Bucket                             | What it is                                                                                                                                                     | Trainable?                | Where it lives                                                                                                 |
+| ---------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| **The 2001 archive's own content** | Emotional tone, what the film provokes, curatorial notes, historical context, the connections between films and the reason for each, the curators' corrections | **Yes**                   | The curatorial columns of `film`, plus the `connection`, `journey`, `editorial_list` and `conversation` tables |
+| **Third-party content**            | Technical record and synopsis from TMDB                                                                                                                        | **No — live lookup only** | The factual columns of `film`, tagged with `factual_source`                                                    |
 
 How the separation is sustained rather than merely declared:
 
@@ -58,18 +58,18 @@ three independent layers, because one layer always ends up bypassed:
   (`src/components/correction-panel.component.tsx`)
 - **Quality gate** — refuses a missing, too-short, or reflex reason ("não
   gostei"), and **nothing is written**: it returns a question for the curator to
-  answer. (`src/server/tools/quality-gate.util.ts`)
+  answer. (`src/lib/quality-gate.util.ts`)
 - **Database** — CHECK constraints hold the rule even for someone calling the
   API directly. (`prisma/migrations/20260921120100_why_is_mandatory/`)
 
 ### The quality gate
 
-| Situation | Outcome |
-|---|---|
-| Sonia and Mirella reach the same reading | `ABSORB`, `HIGH` confidence |
-| Only one reviewed | `ABSORB`, `NORMAL` confidence |
-| The two disagree | `REVIEW` — both readings recorded in `disagreement_note`, **electing no winner** (`correction` stays null, and the database confirms it) |
-| Thin or ambiguous feedback | Nothing is written; the gate returns the question. If the curator will not elaborate, it is recorded as `DISCARD` |
+| Situation                                | Outcome                                                                                                                                  |
+| ---------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| Sonia and Mirella reach the same reading | `ABSORB`, `HIGH` confidence                                                                                                              |
+| Only one reviewed                        | `ABSORB`, `NORMAL` confidence                                                                                                            |
+| The two disagree                         | `REVIEW` — both readings recorded in `disagreement_note`, **electing no winner** (`correction` stays null, and the database confirms it) |
+| Thin or ambiguous feedback               | Nothing is written; the gate returns the question. If the curator will not elaborate, it is recorded as `DISCARD`                        |
 
 When both correct, the gate **does not try to guess** whether they agree by
 comparing free text — it asks. Guessing wrong would either silence a real
@@ -157,21 +157,21 @@ pnpm ingest:tmdb -- --title "Rashomon" --title "Os Sete Samurais" \
 
 ## Commands
 
-| Command | What it does |
-|---|---|
-| `pnpm dev` | Runs the app in development |
-| `pnpm build` / `pnpm start` | Production build and run |
-| `pnpm typecheck` | `tsc --noEmit` |
-| `pnpm lint` / `pnpm format` | ESLint / Prettier |
-| `pnpm test` | Vitest |
-| `pnpm db:generate` | Generates the Prisma client |
-| `pnpm db:migrate` | Creates and applies a migration from `schema.prisma` (dev) |
-| `pnpm db:migrate:deploy` | Applies the versioned migrations (setup and production) |
-| `pnpm db:migrate:verify` | Proves the migrations produce exactly `schema.prisma` |
-| `pnpm db:seed` | **Demonstration** curatorial layer (`-- --clear` removes it) |
-| `pnpm ingest:tmdb` | Ingests the factual layer (`-- --id`, `-- --title`, `-- --fixture`) |
-| `pnpm index:embeddings` | Generates and indexes the vectors (`-- --all`, `-- --recreate`) |
-| `pnpm export:dataset` | Exports the JSONL (`-- --out exports/2026-09.jsonl`) |
+| Command                     | What it does                                                        |
+| --------------------------- | ------------------------------------------------------------------- |
+| `pnpm dev`                  | Runs the app in development                                         |
+| `pnpm build` / `pnpm start` | Production build and run                                            |
+| `pnpm typecheck`            | `tsc --noEmit`                                                      |
+| `pnpm lint` / `pnpm format` | ESLint / Prettier                                                   |
+| `pnpm test`                 | Vitest                                                              |
+| `pnpm db:generate`          | Generates the Prisma client                                         |
+| `pnpm db:migrate`           | Creates and applies a migration from `schema.prisma` (dev)          |
+| `pnpm db:migrate:deploy`    | Applies the versioned migrations (setup and production)             |
+| `pnpm db:migrate:verify`    | Proves the migrations produce exactly `schema.prisma`               |
+| `pnpm db:seed`              | **Demonstration** curatorial layer (`-- --clear` removes it)        |
+| `pnpm ingest:tmdb`          | Ingests the factual layer (`-- --id`, `-- --title`, `-- --fixture`) |
+| `pnpm index:embeddings`     | Generates and indexes the vectors (`-- --all`, `-- --recreate`)     |
+| `pnpm export:dataset`       | Exports the JSONL (`-- --out exports/2026-09.jsonl`)                |
 
 To run a command inside an already-running container, use `docker compose exec`:
 
@@ -192,13 +192,14 @@ app/                      App Router routes (thin: route concerns, auth, composi
 src/
   method/system-prompt.constant.ts   The 2001 Method — Portuguese prose, for the curators to edit
   components/             Interface (client components)
-  lib/                    Types and helpers shared by server and browser
+  lib/                    Types and pure logic shared by server and browser
+    quality-gate.util.ts  The feedback rules — no I/O, so both sides use them
   server/                 Everything server-only (marked with `server-only`)
     archive.service.ts    Factual ingestion that never touches curation
     indexing.service.ts   Text → vector → Qdrant
     exporter.service.ts   The Phase 2 JSONL
     embeddings/           Pluggable provider: voyage | openai | local
-    tools/                The four tools plus the quality gate
+    tools/                The four tools the model can call
     indicator/            The tool-calling conversation loop
 prisma/                   schema.prisma + versioned migrations
 scripts/                  Ingestion, indexing, seeding and export CLIs
@@ -224,12 +225,12 @@ Tool names and parameters are English because they are the API contract; the
 descriptions are Portuguese because they are prompt content, read alongside the
 Method.
 
-| Tool | Role |
-|---|---|
-| `search_films` | Vector search in Qdrant by tone, theme and meaning — not by keyword |
-| `film_details` | A film's factual record plus its curatorial layer |
-| `search_connections` | The bridges the curators built, with the reason for each |
-| `record_feedback` | Records the correction, passing through the quality gate |
+| Tool                 | Role                                                                |
+| -------------------- | ------------------------------------------------------------------- |
+| `search_films`       | Vector search in Qdrant by tone, theme and meaning — not by keyword |
+| `film_details`       | A film's factual record plus its curatorial layer                   |
+| `search_connections` | The bridges the curators built, with the reason for each            |
+| `record_feedback`    | Records the correction, passing through the quality gate            |
 
 ---
 
@@ -311,18 +312,23 @@ optimisation.
 
 ## Verification status
 
-This repository was written in an environment where package installation and
-Docker are read-only. As a result, **nothing has been executed**: no `pnpm
-install`, `tsc --noEmit`, `eslint`, `prisma migrate`, tests, or the application
-itself.
+Green so far: `pnpm install`, `pnpm db:generate`, `pnpm typecheck`,
+`pnpm format`, `pnpm lint`. The `package.json` shape and both Compose files also
+pass their respective validators.
 
-What **was** verified mechanically: the shape of `package.json` (manifest
-validator), both Compose files (yamllint in the `compose` domain), and the
-lockfile (`pnpm install --lockfile-only` resolved all dependencies with no peer
-conflicts).
+**Never executed yet** — treat as unproven until you run it:
 
-First thing to run on your machine, in this order — expect type adjustments on
-the first `typecheck`:
+- `pnpm test` — the suite was fixed after failing on a config bug; re-run it.
+- `pnpm db:migrate:deploy` against a real Postgres. The migration SQL is
+  hand-written to match `schema.prisma`; `pnpm db:migrate:verify` is what proves
+  it, and it has not been run.
+- The CHECK constraints in `20260921120100_why_is_mandatory`. Nothing has
+  exercised them; `prisma migrate diff` cannot see them either.
+- Every network path: TMDB ingestion, Voyage embeddings, Qdrant indexing and
+  search, and the Anthropic conversation loop.
+- The app itself — no page has ever been rendered.
+
+The full check, in order:
 
 ```bash
 pnpm install \

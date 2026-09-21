@@ -228,9 +228,7 @@ async function seedEditorialLists(
     const items = list.films.flatMap((item, position) => {
       const filmId = idByTitle.get(item.title);
 
-      return filmId === undefined
-        ? []
-        : [{ filmId, position, curationLine: item.curationLine }];
+      return filmId === undefined ? [] : [{ filmId, position, curationLine: item.curationLine }];
     });
 
     await db.editorialList.create({

@@ -22,16 +22,16 @@ One row per film, with **two blocks of columns that do not mix**.
 
 **2001 curatorial layer** (the differentiator — trainable material):
 
-| Column | What it carries |
-|---|---|
-| `emotional_tone` | `conforta`, `desafia`, `destrói`, … — free text on purpose: the vocabulary belongs to the curators, not to the schema |
-| `what_it_provokes` | What the film does to the viewer |
-| `commercial_register` | `COMMERCIAL` \| `ARTHOUSE` \| `BOTH` — description, not judgement. Every film is a film |
-| `curatorial_notes` | The months-long study. Free text |
-| `historical_context` | Why it matters in the history of cinema |
-| `archive_category` | Taxonomy label (below) |
-| `reviewed_by` | List: `SONIA`, `MIRELLA`, `BOTH` |
-| `curatorial_source` | `CURATION_2001` \| `DEMO` |
+| Column                | What it carries                                                                                                       |
+| --------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| `emotional_tone`      | `conforta`, `desafia`, `destrói`, … — free text on purpose: the vocabulary belongs to the curators, not to the schema |
+| `what_it_provokes`    | What the film does to the viewer                                                                                      |
+| `commercial_register` | `COMMERCIAL` \| `ARTHOUSE` \| `BOTH` — description, not judgement. Every film is a film                               |
+| `curatorial_notes`    | The months-long study. Free text                                                                                      |
+| `historical_context`  | Why it matters in the history of cinema                                                                               |
+| `archive_category`    | Taxonomy label (below)                                                                                                |
+| `reviewed_by`         | List: `SONIA`, `MIRELLA`, `BOTH`                                                                                      |
+| `curatorial_source`   | `CURATION_2001` \| `DEMO`                                                                                             |
 
 `indexed_at` is vector-index bookkeeping: null means "the Qdrant vector is
 stale". Ingestion and the seed null this field whenever they change any text
@@ -40,7 +40,7 @@ that feeds the embedding.
 **Constraints worth knowing:**
 
 - `film_real_curation_declares_reviewer` — if `curatorial_source =
-  CURATION_2001`, `reviewed_by` cannot be empty and cannot contain `DEMO`.
+CURATION_2001`, `reviewed_by` cannot be empty and cannot contain `DEMO`.
 - `film_demo_does_not_pose_as_curation` — if `curatorial_source = DEMO`,
   `reviewed_by` cannot contain `SONIA`, `MIRELLA` or `BOTH`.
 
@@ -48,13 +48,13 @@ that feeds the embedding.
 
 A directed bridge between two films.
 
-| Column | What it carries |
-|---|---|
-| `source_film_id`, `target_film_id` | From where to where |
-| `type` | `ENTRY_POINT`, `IF_YOU_LIKED`, `BEFORE_WATCHING`, `RELEASE_TO_ARCHIVE`, `ARCHIVE_TO_RELEASE`, `OTHER` |
-| `bridged_by` | `gênero`, `elenco`, `direção`, `tema`, … — free text |
-| `why` | **REQUIRED.** The reason for the bridge, in the curator's words |
-| `curator` | Who established it |
+| Column                             | What it carries                                                                                       |
+| ---------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| `source_film_id`, `target_film_id` | From where to where                                                                                   |
+| `type`                             | `ENTRY_POINT`, `IF_YOU_LIKED`, `BEFORE_WATCHING`, `RELEASE_TO_ARCHIVE`, `ARCHIVE_TO_RELEASE`, `OTHER` |
+| `bridged_by`                       | `gênero`, `elenco`, `direção`, `tema`, … — free text                                                  |
+| `why`                              | **REQUIRED.** The reason for the bridge, in the curator's words                                       |
+| `curator`                          | Who established it                                                                                    |
 
 `connection_why_not_empty` rejects an empty or whitespace-only string — `NOT
 NULL` alone would let `''` through. `connection_source_differs_from_target`
@@ -95,18 +95,18 @@ person per session, and that is what attributes each review correctly.
 
 ### `conversation` — the unit of the dataset
 
-| Column | What it carries |
-|---|---|
-| `user_request` | What the person wanted |
-| `ai_questions` | JSON array: what the AI asked before recommending |
-| `ai_recommendation` | What it suggested, with its reasoning |
-| `correction` | The curator's adjustment, if any |
-| `correction_reason` | **REQUIRED when there is a correction** |
-| `reviewed_by` | `SONIA` \| `MIRELLA` \| `BOTH` |
-| `disagreement_note` | Both readings, with attribution, when they disagreed |
-| `consensus` | `AGREEMENT` \| `DISAGREEMENT` \| `ONLY_ONE_REVIEWED` |
-| `quality` | `ABSORB` \| `DISCARD` \| `REVIEW` |
-| `confidence` | `HIGH` \| `NORMAL` — an addition to the spec, which speaks of high and normal confidence without giving them a field |
+| Column              | What it carries                                                                                                      |
+| ------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| `user_request`      | What the person wanted                                                                                               |
+| `ai_questions`      | JSON array: what the AI asked before recommending                                                                    |
+| `ai_recommendation` | What it suggested, with its reasoning                                                                                |
+| `correction`        | The curator's adjustment, if any                                                                                     |
+| `correction_reason` | **REQUIRED when there is a correction**                                                                              |
+| `reviewed_by`       | `SONIA` \| `MIRELLA` \| `BOTH`                                                                                       |
+| `disagreement_note` | Both readings, with attribution, when they disagreed                                                                 |
+| `consensus`         | `AGREEMENT` \| `DISAGREEMENT` \| `ONLY_ONE_REVIEWED`                                                                 |
+| `quality`           | `ABSORB` \| `DISCARD` \| `REVIEW`                                                                                    |
+| `confidence`        | `HIGH` \| `NORMAL` — an addition to the spec, which speaks of high and normal confidence without giving them a field |
 
 **On disagreement, `correction` is null on purpose.** A disagreement elects no
 winner; both readings go whole into `disagreement_note`, with each curator's
@@ -161,10 +161,10 @@ migration, and that is how the organisation of the knowledge avoids drifting.
 
 ## Migrations
 
-| Migration | What it does |
-|---|---|
-| `20260921120000_init` | Every table, enum, index and foreign key |
-| `20260921120100_why_is_mandatory` | The CHECK constraints above |
+| Migration                         | What it does                             |
+| --------------------------------- | ---------------------------------------- |
+| `20260921120000_init`             | Every table, enum, index and foreign key |
+| `20260921120100_why_is_mandatory` | The CHECK constraints above              |
 
 The CHECK constraints live in a separate migration because Prisma does not model
 `CHECK` — they do not appear in `schema.prisma` and are invisible to

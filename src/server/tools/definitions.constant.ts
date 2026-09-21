@@ -158,8 +158,7 @@ export const INDICADOR_TOOLS = [
               correction: { type: 'string', description: 'A indicação que entra no lugar.' },
               reason: {
                 type: 'string',
-                description:
-                  'Obrigatório quando has_correction é true. Nas palavras da curadora.',
+                description: 'Obrigatório quando has_correction é true. Nas palavras da curadora.',
               },
             },
             required: ['curator', 'has_correction'],

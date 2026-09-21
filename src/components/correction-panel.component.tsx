@@ -3,11 +3,9 @@
 import { useState } from 'react';
 
 import { CURATORS, curatorLabel } from '@/lib/curator.constant';
+import { MIN_REASON_LENGTH } from '@/lib/quality-gate.util';
 
 import type { CuratorName } from '@/lib/curator.constant';
-
-/** Mirrors the minimum the server-side quality gate enforces. */
-const MIN_REASON_LENGTH = 15;
 
 type ReviewState = {
   participates: boolean;
@@ -168,8 +166,8 @@ export function CorrectionPanel({
     >
       <h2>Avaliar a recomendação</h2>
       <p className="muted">
-        O que vale aqui é o porquê. Uma correção sem justificativa não é gravada — é ela que
-        ensina o modelo na Fase 2.
+        O que vale aqui é o porquê. Uma correção sem justificativa não é gravada — é ela que ensina
+        o modelo na Fase 2.
       </p>
 
       <label htmlFor="request">O que a pessoa queria</label>

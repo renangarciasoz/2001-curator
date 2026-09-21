@@ -14,11 +14,7 @@ import { parseArgs } from 'node:util';
 import { describeError } from '../src/lib/app-error.util';
 import { loadFilmFixture, saveFactualLayer } from '../src/server/archive.service';
 import { db } from '../src/server/db.service';
-import {
-  fetchFilmFromTmdb,
-  hasTmdbCredential,
-  searchTmdbIds,
-} from '../src/server/tmdb.service';
+import { fetchFilmFromTmdb, hasTmdbCredential, searchTmdbIds } from '../src/server/tmdb.service';
 
 import type { FactualFilm } from '../src/server/tmdb.service';
 

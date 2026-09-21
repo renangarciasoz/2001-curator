@@ -9,8 +9,8 @@ import { ProviderUnavailableError } from '@/lib/app-error.util';
 
 import { db } from './db.service';
 
-import type { FactualSource } from '@prisma/client';
 import type { FactualFilm } from './tmdb.service';
+import type { FactualSource } from '@prisma/client';
 
 const FIXTURE_PATH = path.join('data', 'films-fixture.json');
 

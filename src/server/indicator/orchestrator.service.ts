@@ -131,12 +131,7 @@ async function* drive(
 
     const results = await Promise.all(
       calls.map((call) =>
-        executeTool(
-          call.name,
-          call.input,
-          { sessionId, profileId: session.profileId },
-          signal,
-        ),
+        executeTool(call.name, call.input, { sessionId, profileId: session.profileId }, signal),
       ),
     );
 

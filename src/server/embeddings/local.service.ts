@@ -26,13 +26,15 @@ export function createLocalProvider(): EmbeddingsProvider {
 }
 
 function tokenize(text: string): readonly string[] {
-  return text
-    .normalize('NFD')
-    // Strips the diacritics NFD split off (Combining Diacritical Marks block).
-    .replace(/[̀-ͯ]/gu, '')
-    .toLowerCase()
-    .split(/[^a-z0-9]+/u)
-    .filter((token) => token.length >= MIN_TOKEN_LENGTH);
+  return (
+    text
+      .normalize('NFD')
+      // Strips the diacritics NFD split off (Combining Diacritical Marks block).
+      .replace(/[̀-ͯ]/gu, '')
+      .toLowerCase()
+      .split(/[^a-z0-9]+/u)
+      .filter((token) => token.length >= MIN_TOKEN_LENGTH)
+  );
 }
 
 function project(tokens: readonly string[]): readonly number[] {
