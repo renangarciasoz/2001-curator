@@ -116,6 +116,42 @@ export async function descartarFeedback(conversaId: string, motivo: string): Pro
   });
 }
 
+export const DescartarNovoSchema = z.object({
+  sessao_id: z.uuid().optional(),
+  pedido_do_usuario: z.string().min(1),
+  perguntas_da_ia: z.array(z.string()).default([]),
+  recomendacao_da_ia: z.string().min(1),
+  avaliado_por: z.enum(['SONIA', 'MIRELLA']),
+  motivo: z.string().trim().min(1).max(2000),
+});
+
+export type DescartarNovoInput = z.infer<typeof DescartarNovoSchema>;
+
+/**
+ * Registra uma avaliação que não virou dado porque a curadora não quis
+ * detalhar o porquê.
+ *
+ * O portão recusou, então não há linha ainda — e simplesmente não gravar nada
+ * faria a Fase 2 concluir que ninguém avaliou aquela recomendação. Gravar o
+ * descarte preserva a diferença entre "não avaliado" e "avaliado e recusado".
+ */
+export async function registrarDescarteNovo(input: DescartarNovoInput): Promise<string> {
+  const conversa = await db.conversa.create({
+    data: {
+      ...(input.sessao_id !== undefined ? { sessaoId: input.sessao_id } : {}),
+      pedidoDoUsuario: input.pedido_do_usuario,
+      perguntasDaIa: input.perguntas_da_ia as Prisma.InputJsonValue,
+      recomendacaoDaIa: input.recomendacao_da_ia,
+      avaliadoPor: input.avaliado_por,
+      notaDaDivergencia: `Descartado sem esclarecimento. Motivo registrado: ${input.motivo}`,
+      qualidade: 'DESCARTA',
+    },
+    select: { id: true },
+  });
+
+  return conversa.id;
+}
+
 function converterAvaliacao(
   avaliacao: RegistrarFeedbackInput['avaliacoes'][number],
 ): AvaliacaoDeCuradora {

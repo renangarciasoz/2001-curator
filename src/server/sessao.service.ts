@@ -4,8 +4,9 @@ import { SessaoNaoEncontradaError } from '@/lib/app-error.util';
 
 import { db } from './db.service';
 
-import type { AutorDaMensagem, Curador } from '@prisma/client';
+import type { FalaDoTranscript } from '@/lib/transcript.type';
 import type Anthropic from '@anthropic-ai/sdk';
+import type { AutorDaMensagem, Curador } from '@prisma/client';
 
 type BlocoDeConteudo = Anthropic.Beta.BetaContentBlockParam;
 
@@ -62,6 +63,39 @@ export async function carregarSessao(sessaoId: string): Promise<SessaoCarregada>
       content: lerBlocos(mensagem.blocos),
     })),
   };
+}
+
+/**
+ * O transcript reduzido ao que a interface mostra.
+ *
+ * Blocos de ferramenta e de raciocínio ficam de fora: a curadora quer ver a
+ * conversa, não o encanamento. Eles continuam no banco, íntegros, porque o loop
+ * precisa deles a cada turno.
+ */
+export async function carregarTranscript(sessaoId: string): Promise<readonly FalaDoTranscript[]> {
+  const sessao = await carregarSessao(sessaoId);
+
+  return sessao.historico.flatMap((mensagem) => {
+    const texto = extrairTexto(mensagem.content);
+
+    if (texto.length === 0) {
+      return [];
+    }
+
+    return [{ autor: mensagem.role === 'assistant' ? 'INDICADOR' : 'CURADORA', texto }];
+  });
+}
+
+function extrairTexto(conteudo: Anthropic.Beta.BetaMessageParam['content']): string {
+  if (typeof conteudo === 'string') {
+    return conteudo.trim();
+  }
+
+  return conteudo
+    .filter((bloco) => bloco.type === 'text')
+    .map((bloco) => bloco.text)
+    .join('\n')
+    .trim();
 }
 
 /** Acrescenta uma mensagem ao transcript, na próxima posição livre. */
