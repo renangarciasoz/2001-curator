@@ -45,6 +45,18 @@ const result = spawnSync(command, args, {
   env: { ...process.env, ...overrides },
 });
 
+// Without these two branches a failed spawn exits 1 having printed nothing at
+// all, which is indistinguishable from the command itself failing quietly.
+if (result.error !== undefined) {
+  console.error(`\nnão consegui executar "${command}": ${result.error.message}`);
+  process.exit(127);
+}
+
+if (result.signal !== null) {
+  console.error(`\n"${command}" foi encerrado pelo sinal ${result.signal}`);
+  process.exit(128);
+}
+
 process.exitCode = result.status ?? 1;
 
 /** A deliberately small dotenv reader: `KEY=value`, `#` comments, blank lines. */
