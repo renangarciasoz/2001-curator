@@ -9,6 +9,7 @@ import {
   ConversationNotFoundError,
   CuratorNotAuthenticatedError,
   FilmNotFoundError,
+  InvalidConfigurationError,
   ProviderUnavailableError,
   SessionNotFoundError,
   describeError,
@@ -85,6 +86,20 @@ export function respondError(e: unknown): NextResponse {
         })),
       },
       { status: 400 },
+    );
+  }
+
+  // A missing setting is the operator's problem, not the curator's. Saying so
+  // beats "check your password" when there is no password to check.
+  if (e instanceof InvalidConfigurationError) {
+    console.error(e.message);
+
+    return NextResponse.json(
+      {
+        error: e.code,
+        message: 'A aplicação não está configurada. Avise quem cuida do deploy.',
+      },
+      { status: 503 },
     );
   }
 

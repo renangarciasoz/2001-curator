@@ -4,7 +4,7 @@ import { createHmac, timingSafeEqual } from 'node:crypto';
 
 import { cookies } from 'next/headers';
 
-import { CuratorNotAuthenticatedError } from '@/lib/app-error.util';
+import { CuratorNotAuthenticatedError, InvalidConfigurationError } from '@/lib/app-error.util';
 import { isCurator } from '@/lib/curator.constant';
 
 import { env } from './env.config';
@@ -34,7 +34,9 @@ export async function signIn(curator: CuratorName, password: string): Promise<vo
   const isProduction = process.env.NODE_ENV === 'production';
 
   if (isProduction && env.APP_CURATION_PASSWORD.length === 0) {
-    throw new CuratorNotAuthenticatedError('APP_CURATION_PASSWORD is not configured');
+    // Its own error type, not a failed sign-in: the operator needs to see a
+    // missing setting, not a curator wondering whether she mistyped.
+    throw new InvalidConfigurationError('APP_CURATION_PASSWORD is required in production');
   }
 
   if (env.APP_CURATION_PASSWORD.length > 0 && !passwordMatches(password)) {

@@ -17,6 +17,17 @@ const ConverseSchema = z.object({
 });
 
 /**
+ * A turn can make up to eight tool round-trips before it answers, each one a
+ * full model call, so this runs far past a default serverless timeout.
+ *
+ * If a deploy rejects this value, the plan's ceiling is lower — lower it to
+ * match rather than leaving it unset. And if turns genuinely need more than
+ * the ceiling allows, the conversation loop belongs on a long-lived host, not
+ * on a function; see README § Deploying.
+ */
+export const maxDuration = 300;
+
+/**
  * One conversation turn, streamed as SSE.
  *
  * Streaming is not decoration here: the Indicador consults the archive before

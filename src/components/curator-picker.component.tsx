@@ -34,7 +34,15 @@ export function CuratorPicker({ requiresPassword }: { requiresPassword: boolean 
       });
 
       if (!response.ok) {
-        setError('Não foi possível entrar. Confira a senha de curadoria.');
+        const body: unknown = await response.json().catch(() => null);
+        const message =
+          typeof body === 'object' && body !== null ? Reflect.get(body, 'message') : null;
+
+        setError(
+          typeof message === 'string'
+            ? message
+            : 'Não foi possível entrar. Confira a senha de curadoria.',
+        );
         return;
       }
 

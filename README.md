@@ -402,7 +402,35 @@ the deployment.
 
 Keep the server minor in step with `@qdrant/js-client-rest`.
 
-### 4. The conversation is a long request
+### The environment Vercel needs
+
+| Variable | Value |
+|---|---|
+| `DATABASE_URL` | Neon **pooled** (hostname carries `-pooler`) |
+| `DIRECT_DATABASE_URL` | Neon **direct** (same host, no `-pooler`) |
+| `QDRANT_URL` | the Qdrant Cloud cluster URL |
+| `QDRANT_API_KEY` | the cluster key |
+| `QDRANT_COLLECTION` | `films` |
+| `ANTHROPIC_API_KEY` | — |
+| `ANTHROPIC_MODEL` | `claude-opus-5` |
+| `EMBEDDINGS_PROVIDER` | `voyage` — see the warning below |
+| `VOYAGE_API_KEY` | — |
+| `VOYAGE_MODEL` | `voyage-3` |
+| `APP_SESSION_SECRET` | a long random value, **different from local** |
+| `APP_CURATION_PASSWORD` | required in production |
+
+`TMDB_ACCESS_TOKEN` and the `OPENAI_*` pair are **not** needed: the deployed app
+never calls TMDB — only the ingestion CLI does — and OpenAI is the unused
+alternative embeddings provider.
+
+> **`EMBEDDINGS_PROVIDER=local` in production is the worst failure in this
+> project**, because it does not fail. The local fallback produces 1024-dimension
+> vectors and so does `voyage-3`, so Qdrant accepts the query, returns neighbours
+> from a completely unrelated vector space, and the Indicador recommends
+> confidently from nonsense. Nothing errors and nothing logs. Set it to `voyage`
+> and keep it there.
+
+### The conversation is a long request
 
 A turn can make up to eight tool round-trips before it answers, each one a full
 model call. That runs well past the default serverless timeout. Set
