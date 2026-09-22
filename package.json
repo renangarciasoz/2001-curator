@@ -21,6 +21,7 @@
     "ingest:tmdb": "node --env-file-if-exists=.env --conditions react-server --import tsx scripts/ingest-tmdb.ts",
     "postinstall": "prisma generate",
     "lint": "eslint .",
+    "prod": "node scripts/with-env.mjs .env.neon",
     "start": "next start",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"

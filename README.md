@@ -365,9 +365,32 @@ Locally there is no pooler, so the two are identical. On Neon or Supabase they
 differ, and pointing migrations at the pooler fails on the session-level
 statements they issue.
 
+### Two env files, and how to switch
+
+`.env` is local, always. Production credentials live in `.env.neon`, which
+nothing reads automatically — `pnpm dev`, the Prisma CLI and every script see
+localhost and only localhost. That is deliberate: a production URL in `.env`
+makes `pnpm dev` write to production and turns the local database into scenery.
+
+To reach production, say so:
+
+```bash
+pnpm prod pnpm db:migrate:deploy
+pnpm prod pnpm ingest:tmdb -- --title "Rashomon"
+pnpm prod pnpm index:embeddings -- --recreate
+```
+
+`pnpm prod` is `scripts/with-env.mjs`, which layers `.env.neon` over the
+process environment and prints which variables it overrode before running
+anything. `--env-file` does not override a variable already set in the
+environment, so the production values win over `.env` inside that command and
+nowhere else.
+
+The deployed app never reads either file: Vercel injects its own environment.
+
 Migrations run with the direct URL, never from a serverless function. Either
-`pnpm db:migrate:deploy` from your machine against production, or a build step
-— `prisma migrate deploy && next build` as the Vercel build command.
+`pnpm prod pnpm db:migrate:deploy` from your machine, or a build step —
+`prisma migrate deploy && next build` as the Vercel build command.
 
 ### 3. Qdrant
 

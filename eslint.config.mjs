@@ -21,12 +21,12 @@ export default tseslint.config(
     languageOptions: {
       parserOptions: {
         projectService: {
-          // The root config files (eslint, postcss, next, vitest) are outside
-          // tsconfig's `include`, so the project service cannot place them and
-          // fails at parse time — before any rule, which is why turning the
-          // type-aware rules off for them is not enough. These globs do not
-          // cross directories, so they match only those four.
-          allowDefaultProject: ['*.mjs', '*.ts'],
+          // The root config files (eslint, postcss, next, vitest) and the
+          // plain-JS launcher in scripts/ are outside tsconfig's `include`, so
+          // the project service cannot place them and fails at parse time —
+          // before any rule, which is why turning the type-aware rules off for
+          // them is not enough.
+          allowDefaultProject: ['*.mjs', '*.ts', 'scripts/*.mjs'],
         },
         tsconfigRootDir: import.meta.dirname,
       },
@@ -77,7 +77,13 @@ export default tseslint.config(
   },
 
   {
-    files: ['eslint.config.mjs', 'next.config.ts', 'postcss.config.mjs', 'vitest.config.ts'],
+    files: [
+      'eslint.config.mjs',
+      'next.config.ts',
+      'postcss.config.mjs',
+      'scripts/*.mjs',
+      'vitest.config.ts',
+    ],
     ...tseslint.configs.disableTypeChecked,
   },
 );
