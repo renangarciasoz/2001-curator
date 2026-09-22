@@ -16,6 +16,9 @@ next-env.d.ts
 # dataset export artifacts
 /exports/
 
+# database dumps
+/backups/
+
 # OS / editor
 .DS_Store
 *.log

@@ -1,8 +1,8 @@
 {
-  "name": "@epcvip/indicador-2001",
+  "name": "@epcvip/2001-curator",
   "version": "0.1.0",
   "private": true,
-  "description": "Indicador 2001 — internal film curation tool for the 2001 Video archive",
+  "description": "2001 Curator — internal film curation tool for the 2001 Video archive",
   "license": "UNLICENSED",
   "type": "module",
   "scripts": {

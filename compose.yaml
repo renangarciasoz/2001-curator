@@ -1,14 +1,16 @@
 ---
-name: indicador-2001
+name: 2001-curator
 
 services:
   postgres:
     image: postgres:18-alpine
     restart: unless-stopped
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-indicador}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-indicador}
-      POSTGRES_DB: ${POSTGRES_DB:-indicador_2001}
+      POSTGRES_USER: ${POSTGRES_USER:-curator}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-curator}
+      # Not `2001-curator`: a Postgres identifier cannot start with a digit or
+      # contain a hyphen without quoting every reference to it forever.
+      POSTGRES_DB: ${POSTGRES_DB:-curator_2001}
     volumes:
       # Postgres 18+ stores data under a major-version subdirectory and expects
       # a single mount at /var/lib/postgresql. Mounting the old
@@ -18,12 +20,12 @@ services:
     healthcheck:
       test:
         - CMD-SHELL
-        - pg_isready -U ${POSTGRES_USER:-indicador} -d ${POSTGRES_DB:-indicador_2001}
+        - pg_isready -U ${POSTGRES_USER:-curator} -d ${POSTGRES_DB:-curator_2001}
       interval: 5s
       timeout: 5s
       retries: 20
     networks:
-      - indicador-2001
+      - curator
 
   qdrant:
     # Keep this minor in step with `@qdrant/js-client-rest` in package.json:
@@ -40,14 +42,14 @@ services:
       timeout: 5s
       retries: 20
     networks:
-      - indicador-2001
+      - curator
 
 volumes:
   postgres-data:
-    name: indicador-2001-postgres-data
+    name: 2001-curator-postgres-data
   qdrant-data:
-    name: indicador-2001-qdrant-data
+    name: 2001-curator-qdrant-data
 
 networks:
-  indicador-2001:
-    name: indicador-2001
+  curator:
+    name: 2001-curator

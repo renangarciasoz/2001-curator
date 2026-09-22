@@ -11,7 +11,7 @@ import { env } from './env.config';
 
 import type { CuratorName } from '@/lib/curator.constant';
 
-const COOKIE_NAME = 'indicador_curator';
+const COOKIE_NAME = 'curator_2001_session';
 const COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 30;
 
 /**

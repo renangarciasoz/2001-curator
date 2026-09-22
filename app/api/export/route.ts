@@ -35,7 +35,7 @@ export async function GET(): Promise<Response> {
       status: 200,
       headers: {
         'content-type': 'application/x-ndjson; charset=utf-8',
-        'content-disposition': `attachment; filename="indicador-2001-${stamp}.jsonl"`,
+        'content-disposition': `attachment; filename="2001-curator-${stamp}.jsonl"`,
         'cache-control': 'no-store',
       },
     });

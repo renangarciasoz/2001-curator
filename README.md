@@ -1,8 +1,13 @@
-# Indicador 2001
+# 2001 Curator
 
 An internal curation tool for **2001 Vídeo**. Sonia and Mirella talk to the
 Indicador, get film recommendations, and correct them while recording **the
 reason** for every correction. Each conversation becomes structured data.
+
+`2001-curator` names the project, the repository and the infrastructure.
+**"O Indicador 2001" names the product** — what the curators address and what
+it calls itself, per the Method. The two are deliberately separate: renaming a
+container should never rename the thing Sonia is talking to.
 
 The value of this project is not the chat. It is the **curatorial dataset** the
 chat collects — the material that, in Phase 2 (outside this repository), will
@@ -177,7 +182,7 @@ To run a command inside an already-running container, use `docker compose exec`:
 
 ```bash
 docker compose -f compose.yaml -f compose.dev.yaml exec -T postgres \
-  psql -U indicador -d indicador_2001 -c 'SELECT count(*) FROM film'
+  psql -U curator -d curator_2001 -c 'SELECT count(*) FROM film'
 ```
 
 ---
@@ -290,9 +295,14 @@ one view that gets a wider column, because it is scanned rather than read.
 asked for "docker-compose"; the EPCVIP standard requires the Compose Spec's
 canonical naming and explicit `-f` invocation. Behaviour is identical.
 
-**The package is named `@epcvip/indicador-2001`.** That is the scope the
-organisation's manifest standard requires. The package is private and never
+**The package is named `@epcvip/2001-curator`.** The `@epcvip` scope is what
+the organisation's manifest standard requires. The package is private and never
 published; if this project leaves the EPCVIP umbrella, change the scope.
+
+**The Postgres database is `curator_2001`, not `2001-curator`.** A Postgres
+identifier cannot start with a digit or carry a hyphen without being quoted at
+every single reference, forever. The one place the project name cannot be spelled
+literally is the one place it would hurt most to get wrong.
 
 **`ConversationFilm` is not in the spec.** It links each conversation to the
 films the AI recommended and the ones the curator put in their place. Without
