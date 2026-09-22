@@ -40,7 +40,19 @@ if (names.length === 0) {
 console.error(`\n  ▸ ${envFile} → ${names.join(', ')}`);
 console.error(`  ▸ ${[command, ...args].join(' ')}\n`);
 
-const result = spawnSync(command, args, {
+/*
+ * Run through a shell rather than exec'ing directly.
+ *
+ * `pnpm` is often a plain JS file rather than a native binary, and exec'ing one
+ * fails with ENOEXEC — the shell knows how to run it, `execvp` does not. Node
+ * joins an args array with bare spaces when `shell` is set, which would split
+ * `--title "Os Sete Samurais"` into three arguments, so the command line is
+ * quoted here instead of handed over as an array.
+ */
+const commandLine = [command, ...args].map(quoteForShell).join(' ');
+
+const result = spawnSync(commandLine, {
+  shell: true,
   stdio: 'inherit',
   env: { ...process.env, ...overrides },
 });
@@ -58,6 +70,15 @@ if (result.signal !== null) {
 }
 
 process.exitCode = result.status ?? 1;
+
+/** POSIX shell quoting: leave safe tokens bare, single-quote everything else. */
+function quoteForShell(token) {
+  if (/^[A-Za-z0-9_@%+=:,./-]+$/.test(token)) {
+    return token;
+  }
+
+  return `'${token.replaceAll("'", "'\\''")}'`;
+}
 
 /** A deliberately small dotenv reader: `KEY=value`, `#` comments, blank lines. */
 function readEnvFile(path) {
