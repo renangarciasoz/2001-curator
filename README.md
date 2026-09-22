@@ -292,12 +292,9 @@ legibility wins wherever it conflicts with atmosphere. The dataset page is the
 one view that gets a wider column, because it is scanned rather than read.
 
 **`compose.yaml` / `compose.dev.yaml`, not `docker-compose.yml`.** The spec
-asked for "docker-compose"; the EPCVIP standard requires the Compose Spec's
-canonical naming and explicit `-f` invocation. Behaviour is identical.
-
-**The package is named `@epcvip/2001-curator`.** The `@epcvip` scope is what
-the organisation's manifest standard requires. The package is private and never
-published; if this project leaves the EPCVIP umbrella, change the scope.
+asked for "docker-compose"; the Compose Spec's canonical naming plus explicit
+`-f` invocation avoids the silent auto-loaded override, which is a reliable
+source of dev/CI drift. Behaviour is identical.
 
 **The Postgres database is `curator_2001`, not `2001-curator`.** A Postgres
 identifier cannot start with a digit or carry a hyphen without being quoted at

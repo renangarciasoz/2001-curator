@@ -1,5 +1,5 @@
 {
-  "name": "@epcvip/2001-curator",
+  "name": "2001-curator",
   "version": "0.1.0",
   "private": true,
   "description": "2001 Curator — internal film curation tool for the 2001 Video archive",

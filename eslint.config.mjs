@@ -1,7 +1,7 @@
-// Local reconstruction of the `@epcvip/eslint-config-typescript` baseline: that package
-// lives in EPCVIP's private registry and is not resolvable from this repository. The
-// rulesets (strict-type-checked + stylistic-type-checked, import-x, unused-imports, next)
-// and the override policy are the ones described in governance/standards/typescript/eslint.
+// typescript-eslint strict + stylistic, both type-checked, plus import ordering,
+// unused-import removal and the Next.js rules. `consistent-type-definitions` is
+// flipped to `type` below: the preset defaults to `interface`, and this codebase
+// uses `type` aliases for object shapes throughout.
 import js from '@eslint/js';
 import nextPlugin from '@next/eslint-plugin-next';
 import importX from 'eslint-plugin-import-x';
