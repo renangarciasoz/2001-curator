@@ -7,6 +7,7 @@
   "type": "module",
   "scripts": {
     "build": "next build",
+    "cleanup": "node --env-file-if-exists=.env --conditions react-server --import tsx scripts/cleanup.ts",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:migrate:deploy": "prisma migrate deploy",

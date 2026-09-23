@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
 import { CuratorSwitch } from './curator-switch.component';
@@ -118,22 +119,12 @@ function Rail({
         ) : (
           <ul className="pb-8">
             {sessions.map((session) => (
-              <li key={session.sessionId}>
-                <Link
-                  href={`/chat/${session.sessionId}`}
-                  onClick={onClose}
-                  className={`block border-l-2 px-4 py-3 transition-colors ${
-                    session.sessionId === activeSessionId
-                      ? 'border-hal bg-recess text-signal'
-                      : 'border-transparent text-signal-dim hover:bg-recess hover:text-signal'
-                  }`}
-                >
-                  <span className="line-clamp-2 text-[14px] leading-snug">{session.opening}</span>
-                  <span className="label-caps mt-1.5 block">
-                    {session.persona ?? session.lastActivity.toISOString().slice(5, 10)}
-                  </span>
-                </Link>
-              </li>
+              <RailRow
+                key={session.sessionId}
+                session={session}
+                active={session.sessionId === activeSessionId}
+                onNavigate={onClose}
+              />
             ))}
           </ul>
         )}
@@ -149,6 +140,114 @@ function Rail({
         </div>
       </nav>
     </>
+  );
+}
+
+/**
+ * One conversation in the rail, with a way to throw it away.
+ *
+ * Deleting asks first, in place, rather than with a `confirm()` dialog: the ×
+ * is a permanently visible target on a phone, where there is no hover to hide
+ * behind, and a mis-tap has to cost nothing. The second tap is the one that
+ * deletes.
+ */
+function RailRow({
+  session,
+  active,
+  onNavigate,
+}: {
+  session: SessionSummary;
+  active: boolean;
+  onNavigate: () => void;
+}) {
+  const router = useRouter();
+  const [confirming, setConfirming] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
+  async function remove(): Promise<void> {
+    setDeleting(true);
+
+    try {
+      const response = await fetch(`/api/session/${session.sessionId}`, { method: 'DELETE' });
+
+      if (!response.ok) {
+        setDeleting(false);
+        setConfirming(false);
+        return;
+      }
+
+      // Leaving the deleted conversation open would be a dead page; the root
+      // decides where to land next, exactly as it does on arrival.
+      if (active) {
+        router.replace('/');
+      }
+
+      router.refresh();
+    } catch {
+      setDeleting(false);
+      setConfirming(false);
+    }
+  }
+
+  if (confirming) {
+    return (
+      <li className="border-l-2 border-hal bg-recess px-4 py-3">
+        <p className="text-[14px] leading-snug text-signal">Apagar esta conversa?</p>
+        <p className="mt-1 font-mono text-[10px] tracking-wider text-signal-faint uppercase">
+          As avaliações registradas continuam no dataset
+        </p>
+        <div className="mt-3 flex gap-2">
+          <button
+            type="button"
+            disabled={deleting}
+            className="label-caps min-h-9 cursor-pointer border border-hal px-3 text-hal disabled:opacity-50"
+            onClick={() => void remove()}
+          >
+            {deleting ? 'Apagando…' : 'Apagar'}
+          </button>
+          <button
+            type="button"
+            disabled={deleting}
+            className="label-caps min-h-9 cursor-pointer border border-seam-lit px-3 text-signal-dim"
+            onClick={() => {
+              setConfirming(false);
+            }}
+          >
+            Manter
+          </button>
+        </div>
+      </li>
+    );
+  }
+
+  return (
+    <li
+      className={`flex items-start border-l-2 transition-colors ${
+        active ? 'border-hal bg-recess' : 'border-transparent hover:bg-recess'
+      }`}
+    >
+      <Link
+        href={`/chat/${session.sessionId}`}
+        onClick={onNavigate}
+        className={`min-w-0 flex-1 px-4 py-3 ${active ? 'text-signal' : 'text-signal-dim'}`}
+      >
+        <span className="line-clamp-2 text-[14px] leading-snug">{session.opening}</span>
+        <span className="label-caps mt-1.5 block">
+          {session.persona ?? session.lastActivity.toISOString().slice(5, 10)}
+        </span>
+      </Link>
+
+      <button
+        type="button"
+        aria-label="Apagar conversa"
+        className="flex size-11 shrink-0 cursor-pointer items-center justify-center text-signal-faint transition-colors hover:text-hal"
+        onClick={() => {
+          setConfirming(true);
+        }}
+      >
+        ×
+      </button>
+    </li>
   );
 }
 

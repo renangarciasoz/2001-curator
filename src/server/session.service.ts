@@ -137,6 +137,43 @@ export async function listSessions(
   }));
 }
 
+export type SessionDeletion = {
+  /** Reviews that were recorded here and stay in the dataset, now unlinked. */
+  readonly reviewsKept: number;
+};
+
+/**
+ * Deletes a conversation and its messages.
+ *
+ * What it does *not* delete is the point: reviews recorded in this session are
+ * rows in `conversation`, and the foreign key is `ON DELETE SET NULL`. They
+ * survive with `session_id` null. A curator throwing away a messy chat must not
+ * be able to throw away the reasons she wrote down in it — that is the only
+ * thing this project is accumulating.
+ *
+ * Purging reviews is possible, but only from the terminal, deliberately: see
+ * `scripts/cleanup.ts`.
+ *
+ * @throws {SessionNotFoundError} when the session does not exist or belongs to
+ *   the other curator — the two are the same answer on purpose, so this cannot
+ *   be used to probe for someone else's session ids.
+ */
+export async function deleteSession(sessionId: string, curator: Curator): Promise<SessionDeletion> {
+  const session = await db.session.findUnique({
+    where: { id: sessionId },
+    select: { curator: true, _count: { select: { conversations: true } } },
+  });
+
+  if (session === null || session.curator !== curator) {
+    throw new SessionNotFoundError(sessionId);
+  }
+
+  // Messages cascade; conversations detach. Both are declared in the schema.
+  await db.session.delete({ where: { id: sessionId } });
+
+  return { reviewsKept: session._count.conversations };
+}
+
 function summarize(blocks: Prisma.JsonValue | undefined): string {
   if (blocks === undefined) {
     return 'Conversa sem abertura registrada';
@@ -157,9 +194,7 @@ function consultedArchive(message: Anthropic.Beta.BetaMessageParam): boolean {
     return false;
   }
 
-  return message.content.some(
-    (block) => block.type === 'tool_use' && isArchiveTool(block.name),
-  );
+  return message.content.some((block) => block.type === 'tool_use' && isArchiveTool(block.name));
 }
 
 function extractText(content: Anthropic.Beta.BetaMessageParam['content']): string {
