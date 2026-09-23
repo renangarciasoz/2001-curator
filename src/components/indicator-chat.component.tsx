@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from 'react';
 import { readSseEvents } from '@/lib/sse-events.util';
 import { isArchiveTool } from '@/lib/transcript.type';
 
+import { AutoTextarea } from './auto-textarea.component';
 import { CorrectionPanel } from './correction-panel.component';
 
 import type { Transcript, TranscriptTurn } from '@/lib/transcript.type';
@@ -58,7 +59,6 @@ export function IndicatorChat({
   const partial = useRef('');
   const scroller = useRef<HTMLDivElement>(null);
   const panel = useRef<HTMLDivElement>(null);
-  const composer = useRef<HTMLTextAreaElement>(null);
 
   /*
     Follow the answer as it streams.
@@ -239,11 +239,8 @@ export function IndicatorChat({
       return;
     }
 
+    // Clearing the draft is enough: the composer resizes off the value.
     setDraft('');
-
-    if (composer.current !== null) {
-      composer.current.style.height = 'auto';
-    }
 
     void send(message);
   }
@@ -464,24 +461,20 @@ export function IndicatorChat({
       >
         <div className="mx-auto w-full max-w-2xl px-4 py-3 sm:px-6">
           <div className="flex items-end gap-2">
-            <textarea
-              ref={composer}
+            <AutoTextarea
               value={draft}
-              rows={1}
               disabled={inFlight}
               aria-label="Sua mensagem"
-              placeholder="Minha mãe perdeu o pai e quer chorar sem se destruir…"
+              /*
+                Short on purpose: the box is one row tall until something is
+                typed, so a placeholder that wraps is a placeholder that is
+                cut in half on a phone. The empty state above carries the
+                longer explanation.
+              */
+              placeholder="Um casal, gostos diferentes…"
               className="field max-h-40 resize-none disabled:opacity-60"
               onChange={(event) => {
                 setDraft(event.target.value);
-
-                // Grow with the text instead of hiding it behind a scrollbar,
-                // then — once it hits `max-h-40` and stops growing — keep the
-                // last line in view, which is where the caret is.
-                const field = event.currentTarget;
-                field.style.height = 'auto';
-                field.style.height = `${String(field.scrollHeight)}px`;
-                field.scrollTop = field.scrollHeight;
               }}
               onKeyDown={(event) => {
                 // Enter sends on a keyboard; on a touch keyboard Enter has to
