@@ -265,8 +265,8 @@ real archive.
 policy refusal — unlikely in a film product, but a conversation that dies
 mid-turn with no explanation is worse than one served by the previous model.
 
-**The interface is the film.** The store is named after *2001: A Space
-Odyssey*, so the tool is built from the film's visual language rather than from
+**The interface is the film.** The store is named after _2001: A Space
+Odyssey_, so the tool is built from the film's visual language rather than from
 a generic dark theme. Tailwind v4, theme in `app/globals.css` rather than a JS
 config:
 
@@ -356,10 +356,10 @@ On serverless, connection exhaustion is the trap: every cold start opens a
 connection, and Postgres runs out long before traffic does. `schema.prisma`
 therefore declares two URLs, and both must be set:
 
-| Variable | Which connection | Used by |
-|---|---|---|
-| `DATABASE_URL` | pooled | the application |
-| `DIRECT_DATABASE_URL` | direct | migrations and introspection |
+| Variable              | Which connection | Used by                      |
+| --------------------- | ---------------- | ---------------------------- |
+| `DATABASE_URL`        | pooled           | the application              |
+| `DIRECT_DATABASE_URL` | direct           | migrations and introspection |
 
 Locally there is no pooler, so the two are identical. On Neon or Supabase they
 differ, and pointing migrations at the pooler fails on the session-level
@@ -400,24 +400,38 @@ run `pnpm index:embeddings -- --recreate` **once, pointed at production**, to
 build the collection — the ingestion and indexing scripts are CLIs, not part of
 the deployment.
 
+`QDRANT_URL` must carry the REST port — the host, then `:6333`. The dashboard
+shows the host without it, and `https://` then defaults to 443, where nothing is
+listening. The only symptom is `fetch failed`, which is indistinguishable from a
+stopped container.
+
+`QDRANT_COLLECTION` must be the same string in every environment that expects
+the same index. `film.indexed_at` in Postgres records _that_ a film was indexed,
+never into which cluster or collection, so a name that drifts between
+environments presents as an empty archive rather than as a misconfiguration.
+
 Keep the server minor in step with `@qdrant/js-client-rest`.
+
+`pnpm check:services` reports on all of this — Postgres, Qdrant, the embeddings
+provider, then the exact path `search_films` takes — and `pnpm prod pnpm
+check:services` does it against production. It writes nothing.
 
 ### The environment Vercel needs
 
-| Variable | Value |
-|---|---|
-| `DATABASE_URL` | Neon **pooled** (hostname carries `-pooler`) |
-| `DIRECT_DATABASE_URL` | Neon **direct** (same host, no `-pooler`) |
-| `QDRANT_URL` | the Qdrant Cloud cluster URL |
-| `QDRANT_API_KEY` | the cluster key |
-| `QDRANT_COLLECTION` | `films` |
-| `ANTHROPIC_API_KEY` | — |
-| `ANTHROPIC_MODEL` | `claude-opus-5` |
-| `EMBEDDINGS_PROVIDER` | `voyage` — see the warning below |
-| `VOYAGE_API_KEY` | — |
-| `VOYAGE_MODEL` | `voyage-3` |
-| `APP_SESSION_SECRET` | a long random value, **different from local** |
-| `APP_CURATION_PASSWORD` | required in production |
+| Variable                | Value                                         |
+| ----------------------- | --------------------------------------------- |
+| `DATABASE_URL`          | Neon **pooled** (hostname carries `-pooler`)  |
+| `DIRECT_DATABASE_URL`   | Neon **direct** (same host, no `-pooler`)     |
+| `QDRANT_URL`            | the cluster URL **with `:6333`**              |
+| `QDRANT_API_KEY`        | the cluster key                               |
+| `QDRANT_COLLECTION`     | `films` — the same string everywhere          |
+| `ANTHROPIC_API_KEY`     | —                                             |
+| `ANTHROPIC_MODEL`       | `claude-opus-5`                               |
+| `EMBEDDINGS_PROVIDER`   | `voyage` — see the warning below              |
+| `VOYAGE_API_KEY`        | —                                             |
+| `VOYAGE_MODEL`          | `voyage-3`                                    |
+| `APP_SESSION_SECRET`    | a long random value, **different from local** |
+| `APP_CURATION_PASSWORD` | required in production                        |
 
 `TMDB_ACCESS_TOKEN` and the `OPENAI_*` pair are **not** needed: the deployed app
 never calls TMDB — only the ingestion CLI does — and OpenAI is the unused
