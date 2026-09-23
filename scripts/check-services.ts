@@ -2,8 +2,13 @@
  * Checks every service a recommendation depends on, in the order it depends on
  * them, and says which one is broken.
  *
- *   pnpm doctor              # against .env
- *   pnpm prod pnpm doctor    # against .env.neon
+ *   pnpm check:services              # against .env
+ *   pnpm prod pnpm check:services    # against .env.neon
+ *
+ * The name is namespaced with a colon for a reason: `pnpm doctor` is a built-in
+ * pnpm command, so a script called `doctor` is shadowed and never runs. Every
+ * script in this project carries a `verb:noun` name, and a colon cannot collide
+ * with a pnpm built-in — now or in a future version.
  *
  * This exists because a failing tool call reaches the curator as the Indicador
  * politely declining to invent a film. That is the right behaviour and a

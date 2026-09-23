@@ -319,7 +319,7 @@ export function IndicatorChat({
                 resposta não vem do acervo da 2001 — não avalie como se viesse.
               </p>
               <p className="mt-2 font-mono text-[11px] tracking-wider text-signal-faint uppercase">
-                Rode `pnpm doctor` para ver qual serviço caiu
+                Rode `pnpm check:services` para ver qual serviço caiu
               </p>
             </div>
           ) : null}
