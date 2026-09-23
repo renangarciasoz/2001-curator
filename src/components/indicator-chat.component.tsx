@@ -32,14 +32,19 @@ export function IndicatorChat({
   sessionId: initialSessionId,
   curator,
   initialTranscript,
+  personaName = null,
 }: {
   sessionId: string | null;
   curator: string;
   initialTranscript: Transcript;
+  /** The viewer this conversation is attached to, when it is attached to one. */
+  personaName?: string | null;
 }) {
   const router = useRouter();
 
   const [sessionId, setSessionId] = useState(initialSessionId);
+  const [attachedPersona, setAttachedPersona] = useState(personaName);
+  const [namingPersona, setNamingPersona] = useState(false);
   const [persona, setPersona] = useState('');
   const [turns, setTurns] = useState<readonly TranscriptTurn[]>(initialTranscript.turns);
   const [draft, setDraft] = useState('');
@@ -158,6 +163,11 @@ export function IndicatorChat({
     }
 
     setSessionId(id);
+
+    if (named.length > 0) {
+      setAttachedPersona(named);
+    }
+
     // Keeps the address bar honest without remounting and losing the stream.
     window.history.replaceState({}, '', `/chat/${id}`);
 
@@ -242,66 +252,141 @@ export function IndicatorChat({
   const lastRecommendation =
     [...turns].reverse().find((turn) => turn.author === 'INDICADOR')?.text ?? '';
 
+  /**
+   * What is happening right now, in one line.
+   *
+   * A running tool is the most specific thing we can say, so it wins. Otherwise
+   * the turn is with the model: either it has not started writing (the wait
+   * that used to look like a crash) or it is writing, and the caret in the text
+   * already says that — so the line stays general rather than contradicting it.
+   */
+  const status = ((): string | null => {
+    if (tool !== null) {
+      return tool;
+    }
+
+    if (!inFlight) {
+      return null;
+    }
+
+    const answering = turns.at(-1);
+
+    return answering?.author === 'INDICADOR' && answering.text.length > 0
+      ? 'escrevendo'
+      : 'pensando';
+  })();
+
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <div ref={scroller} className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
         <div className="mx-auto w-full max-w-2xl px-4 pt-6 pb-6 sm:px-6">
+          {/*
+            Whose history this conversation is attached to. It used to be
+            visible only while typing the first message, which meant that for
+            the whole rest of the conversation nothing on screen said which
+            person the Indicador was remembering.
+          */}
+          {attachedPersona !== null ? (
+            <p className="mb-6 flex items-center gap-2 border-l-2 border-seam-lit pl-3">
+              <span className="label-caps">Para</span>
+              <span className="font-ui text-[14px] text-signal">{attachedPersona}</span>
+            </p>
+          ) : null}
+
           {turns.length === 0 ? (
-            <div className="mt-6">
+            <div className="mt-2">
               <p className="text-[16px] leading-relaxed text-signal-dim text-pretty">
                 Conte o que a pessoa precisa. O Indicador pergunta antes de indicar — é assim de
                 propósito.
               </p>
 
+              {/*
+                Folded away by default. Naming a persona is useful and rare —
+                it buys memory between visits — but an empty field sitting
+                between the curator and the only thing she came to do made the
+                screen read as a form.
+              */}
               {sessionId === null ? (
-                <div className="mt-8 max-w-sm">
-                  <label htmlFor="persona" className="label-caps mb-2 block">
-                    Para quem é? (opcional)
-                  </label>
-                  <input
-                    id="persona"
-                    value={persona}
-                    className="field"
-                    placeholder="Nome ou apelido de quem vai assistir"
-                    onChange={(event) => {
-                      setPersona(event.target.value);
-                    }}
-                  />
-                  <p className="mt-2 font-mono text-[10px] tracking-wider text-signal-faint uppercase">
-                    Liga a conversa ao histórico dessa pessoa
-                  </p>
+                <div className="mt-8">
+                  {namingPersona ? (
+                    <div className="max-w-sm">
+                      <label htmlFor="persona" className="label-caps mb-2 block">
+                        Para quem é?
+                      </label>
+                      <input
+                        id="persona"
+                        value={persona}
+                        autoFocus
+                        className="field"
+                        placeholder="Nome ou apelido de quem vai assistir"
+                        onChange={(event) => {
+                          setPersona(event.target.value);
+                        }}
+                      />
+                      <p className="mt-2 font-mono text-[10px] tracking-wider text-signal-faint uppercase">
+                        Liga a conversa ao histórico dessa pessoa
+                      </p>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      className="label-caps cursor-pointer transition-colors hover:text-hal"
+                      onClick={() => {
+                        setNamingPersona(true);
+                      }}
+                    >
+                      + Dizer para quem é
+                    </button>
+                  )}
                 </div>
               ) : null}
             </div>
           ) : (
             <div className="space-y-7">
-              {turns.map((turn, position) => (
-                <article
-                  // The transcript only grows at the end; position is stable.
-                  key={`${String(position)}-${turn.author}`}
-                  className={`border-l-2 pl-4 sm:pl-5 ${
-                    turn.author === 'CURATOR' ? 'border-seam' : 'border-hal'
-                  }`}
-                >
-                  <p className="label-caps mb-1.5">
-                    {turn.author === 'CURATOR' ? 'Você' : 'O Indicador'}
-                  </p>
-                  <div
-                    className={`text-[16px] leading-[1.65] whitespace-pre-wrap sm:text-[17px] ${
-                      turn.author === 'CURATOR' ? 'text-signal-dim' : 'text-signal'
+              {turns.map((turn, position) => {
+                const isLast = position === turns.length - 1;
+
+                return (
+                  <article
+                    // The transcript only grows at the end; position is stable.
+                    key={`${String(position)}-${turn.author}`}
+                    className={`border-l-2 pl-4 sm:pl-5 ${
+                      turn.author === 'CURATOR' ? 'border-seam' : 'border-hal'
                     }`}
                   >
-                    {turn.text}
-                  </div>
-                </article>
-              ))}
+                    <p className="label-caps mb-1.5">
+                      {turn.author === 'CURATOR' ? 'Você' : 'O Indicador'}
+                    </p>
+                    <div
+                      className={`text-[16px] leading-[1.65] whitespace-pre-wrap sm:text-[17px] ${
+                        turn.author === 'CURATOR' ? 'text-signal-dim' : 'text-signal'
+                      }`}
+                    >
+                      {turn.text}
+                      {/* The text is arriving; the caret says so without a spinner. */}
+                      {inFlight && isLast && turn.author === 'INDICADOR' && turn.text.length > 0 ? (
+                        <span aria-hidden="true" className="caret" />
+                      ) : null}
+                    </div>
+                  </article>
+                );
+              })}
             </div>
           )}
 
-          {tool !== null ? (
-            <p className="mt-5 flex items-center gap-3 font-mono text-[11px] tracking-[0.16em] text-signal-dim uppercase">
+          {/*
+            One activity line for the whole turn, never absent while a turn is
+            in flight. Before this, the gap between pressing send and the first
+            token showed nothing at all — the longest part of a turn, and the
+            part that read as a freeze.
+          */}
+          {status !== null ? (
+            <p
+              aria-live="polite"
+              className="mt-5 flex items-center gap-3 font-mono text-[11px] tracking-[0.16em] text-signal-dim uppercase"
+            >
               <span aria-hidden="true" className="hal-eye animate-pulse" />
-              {tool}
+              {status}
             </p>
           ) : null}
 
@@ -412,12 +497,14 @@ export function IndicatorChat({
 
             <button
               type="button"
-              aria-label="Enviar"
+              aria-label={inFlight ? 'Enviando' : 'Enviar'}
+              aria-busy={inFlight}
               disabled={inFlight || draft.trim().length === 0}
               className="btn btn-primary shrink-0 px-4"
               onClick={submit}
             >
-              {inFlight ? '…' : '→'}
+              {/* A still ellipsis reads as frozen, which is what it replaced. */}
+              {inFlight ? <span aria-hidden="true" className="spinner" /> : '→'}
             </button>
           </div>
 

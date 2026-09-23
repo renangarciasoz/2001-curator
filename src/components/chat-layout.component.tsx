@@ -238,8 +238,11 @@ function RailRow({
         className={`min-w-0 flex-1 px-4 py-3 ${active ? 'text-signal' : 'text-signal-dim'}`}
       >
         <span className="line-clamp-2 text-[14px] leading-snug">{session.opening}</span>
+        {/* The persona is what makes two similar conversations tellable apart,
+            so it is shown beside the date rather than instead of it. */}
         <span className="label-caps mt-1.5 block">
-          {session.persona ?? session.lastActivity.toISOString().slice(5, 10)}
+          {session.lastActivity.toISOString().slice(5, 10)}
+          {session.persona !== null ? ` · ${session.persona}` : ''}
         </span>
       </Link>
 

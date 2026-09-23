@@ -17,7 +17,7 @@ export default async function ChatPage({ params }: { params: Promise<{ sessionId
 
   const session = await db.session.findUnique({
     where: { id: sessionId },
-    select: { id: true, curator: true },
+    select: { id: true, curator: true, profile: { select: { userId: true } } },
   });
 
   if (session === null) {
@@ -37,7 +37,12 @@ export default async function ChatPage({ params }: { params: Promise<{ sessionId
 
   return (
     <ChatLayout curator={curator} sessions={sessions} activeSessionId={sessionId}>
-      <IndicatorChat sessionId={sessionId} curator={curator} initialTranscript={transcript} />
+      <IndicatorChat
+        sessionId={sessionId}
+        curator={curator}
+        initialTranscript={transcript}
+        personaName={session.profile?.userId ?? null}
+      />
     </ChatLayout>
   );
 }
