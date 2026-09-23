@@ -57,8 +57,6 @@
     color: var(--color-signal);
     font-family: var(--font-ui);
     -webkit-font-smoothing: antialiased;
-    /* The composer is pinned to the bottom; keep it clear of the home bar. */
-    padding-bottom: env(safe-area-inset-bottom);
   }
 
   ::selection {

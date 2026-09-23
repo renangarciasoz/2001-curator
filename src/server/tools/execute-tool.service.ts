@@ -37,6 +37,13 @@ export async function executeTool(
   try {
     return { content: await dispatch(name, args, context, signal), isError: false };
   } catch (e) {
+    // The model receives this failure as a `tool_result` and, being well
+    // behaved, tells the curator politely that the archive is unavailable. That
+    // is the only place it used to appear: an unreachable Qdrant or a rejected
+    // embeddings key looked like the Indicador being coy. Infrastructure
+    // failures belong in the operator's terminal.
+    console.error(`Tool ${name} failed: ${describeError(e)}`);
+
     return { content: JSON.stringify(describeFailure(e)), isError: true };
   }
 }

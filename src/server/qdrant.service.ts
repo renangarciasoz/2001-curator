@@ -149,6 +149,46 @@ export async function searchByVector(
   }
 }
 
+export type CollectionStatus = {
+  readonly dimensions: number;
+  readonly points: number;
+};
+
+/**
+ * The collection's size and fill, or `null` when it does not exist.
+ *
+ * Unlike `describeCollection`, an unreachable server throws here instead of
+ * coming back as `null`. The distinction is the whole point for a diagnostic:
+ * "the collection is missing" is fixed by re-indexing, "the server is down" is
+ * fixed by starting a container, and reporting the second as the first sends
+ * the operator to re-index against nothing.
+ *
+ * @throws {ProviderUnavailableError} when Qdrant cannot be reached.
+ */
+export async function collectionStatus(name: string): Promise<CollectionStatus | null> {
+  let info: Awaited<ReturnType<QdrantClient['getCollections']>>;
+
+  try {
+    info = await client().getCollections();
+  } catch (e) {
+    throw new ProviderUnavailableError('qdrant', describeError(e), { cause: e });
+  }
+
+  if (!info.collections.some((collection) => collection.name === name)) {
+    return null;
+  }
+
+  const described = await describeCollection(name);
+
+  if (described === null) {
+    return null;
+  }
+
+  const counted = await client().count(name, { exact: true });
+
+  return { dimensions: described.dimensions, points: counted.count };
+}
+
 /**
  * The collection's vector size, or `null` if it does not exist.
  *

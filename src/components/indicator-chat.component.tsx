@@ -46,18 +46,30 @@ export function IndicatorChat({
   const [inFlight, setInFlight] = useState(false);
   const [tool, setTool] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [toolFailure, setToolFailure] = useState<string | null>(null);
   const [reviewing, setReviewing] = useState(false);
   const [hasRecommended, setHasRecommended] = useState(initialTranscript.hasRecommended);
 
   const partial = useRef('');
-  const bottom = useRef<HTMLDivElement>(null);
+  const scroller = useRef<HTMLDivElement>(null);
   const panel = useRef<HTMLDivElement>(null);
   const composer = useRef<HTMLTextAreaElement>(null);
 
-  // Follow the answer as it streams; a chat that does not scroll itself makes
-  // the reader chase the text on a phone.
+  /*
+    Follow the answer as it streams.
+
+    This drives the scroll container directly instead of calling
+    `scrollIntoView` on a sentinel element. `scrollIntoView` aligns against the
+    nearest scrollport and stops early when the content is still growing — with
+    a streaming answer that means the text runs off the bottom and stays there.
+    Setting `scrollTop` to `scrollHeight` has no such ambiguity.
+  */
   useEffect(() => {
-    bottom.current?.scrollIntoView({ block: 'end' });
+    const area = scroller.current;
+
+    if (area !== null) {
+      area.scrollTop = area.scrollHeight;
+    }
   }, [turns, tool]);
 
   // The review panel opens below the fold. Without this the button looks like
@@ -72,6 +84,7 @@ export function IndicatorChat({
 
   async function send(message: string): Promise<void> {
     setError(null);
+    setToolFailure(null);
     setInFlight(true);
     setReviewing(false);
     partial.current = '';
@@ -161,8 +174,17 @@ export function IndicatorChat({
       case 'tool':
         setTool(event.state === 'start' ? (TOOL_LABEL[event.name] ?? event.name) : null);
 
+        // A failed tool used to be invisible here: the model would explain, in
+        // prose, that the archive was unreachable, and the curator had no way
+        // to tell a broken service from the Indicador being careful.
+        if (event.state === 'end' && event.error === true) {
+          setToolFailure(event.name);
+          break;
+        }
+
         // Reaching the archive is what turns a question into a recommendation,
-        // and a recommendation is the only thing there is to review.
+        // and a recommendation is the only thing there is to review. A failed
+        // search is not reaching it — hence the early break above.
         if (isArchiveTool(event.name)) {
           setHasRecommended(true);
         }
@@ -221,122 +243,139 @@ export function IndicatorChat({
     [...turns].reverse().find((turn) => turn.author === 'INDICADOR')?.text ?? '';
 
   return (
-    <div className="flex flex-1 flex-col">
-      <div className="mx-auto w-full max-w-2xl flex-1 px-4 pt-6 pb-4 sm:px-6">
-        {turns.length === 0 ? (
-          <div className="mt-6">
-            <p className="text-[16px] leading-relaxed text-signal-dim text-pretty">
-              Conte o que a pessoa precisa. O Indicador pergunta antes de indicar — é assim de
-              propósito.
-            </p>
+    <div className="flex min-h-0 flex-1 flex-col">
+      <div ref={scroller} className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+        <div className="mx-auto w-full max-w-2xl px-4 pt-6 pb-6 sm:px-6">
+          {turns.length === 0 ? (
+            <div className="mt-6">
+              <p className="text-[16px] leading-relaxed text-signal-dim text-pretty">
+                Conte o que a pessoa precisa. O Indicador pergunta antes de indicar — é assim de
+                propósito.
+              </p>
 
-            {sessionId === null ? (
-              <div className="mt-8 max-w-sm">
-                <label htmlFor="persona" className="label-caps mb-2 block">
-                  Para quem é? (opcional)
-                </label>
-                <input
-                  id="persona"
-                  value={persona}
-                  className="field"
-                  placeholder="Nome ou apelido de quem vai assistir"
-                  onChange={(event) => {
-                    setPersona(event.target.value);
-                  }}
-                />
-                <p className="mt-2 font-mono text-[10px] tracking-wider text-signal-faint uppercase">
-                  Liga a conversa ao histórico dessa pessoa
-                </p>
-              </div>
-            ) : null}
-          </div>
-        ) : (
-          <div className="space-y-7">
-            {turns.map((turn, position) => (
-              <article
-                // The transcript only grows at the end; position is stable.
-                key={`${String(position)}-${turn.author}`}
-                className={`border-l-2 pl-4 sm:pl-5 ${
-                  turn.author === 'CURATOR' ? 'border-seam' : 'border-hal'
-                }`}
-              >
-                <p className="label-caps mb-1.5">
-                  {turn.author === 'CURATOR' ? 'Você' : 'O Indicador'}
-                </p>
-                <div
-                  className={`text-[16px] leading-[1.65] whitespace-pre-wrap sm:text-[17px] ${
-                    turn.author === 'CURATOR' ? 'text-signal-dim' : 'text-signal'
+              {sessionId === null ? (
+                <div className="mt-8 max-w-sm">
+                  <label htmlFor="persona" className="label-caps mb-2 block">
+                    Para quem é? (opcional)
+                  </label>
+                  <input
+                    id="persona"
+                    value={persona}
+                    className="field"
+                    placeholder="Nome ou apelido de quem vai assistir"
+                    onChange={(event) => {
+                      setPersona(event.target.value);
+                    }}
+                  />
+                  <p className="mt-2 font-mono text-[10px] tracking-wider text-signal-faint uppercase">
+                    Liga a conversa ao histórico dessa pessoa
+                  </p>
+                </div>
+              ) : null}
+            </div>
+          ) : (
+            <div className="space-y-7">
+              {turns.map((turn, position) => (
+                <article
+                  // The transcript only grows at the end; position is stable.
+                  key={`${String(position)}-${turn.author}`}
+                  className={`border-l-2 pl-4 sm:pl-5 ${
+                    turn.author === 'CURATOR' ? 'border-seam' : 'border-hal'
                   }`}
                 >
-                  {turn.text}
-                </div>
-              </article>
-            ))}
-          </div>
-        )}
+                  <p className="label-caps mb-1.5">
+                    {turn.author === 'CURATOR' ? 'Você' : 'O Indicador'}
+                  </p>
+                  <div
+                    className={`text-[16px] leading-[1.65] whitespace-pre-wrap sm:text-[17px] ${
+                      turn.author === 'CURATOR' ? 'text-signal-dim' : 'text-signal'
+                    }`}
+                  >
+                    {turn.text}
+                  </div>
+                </article>
+              ))}
+            </div>
+          )}
 
-        {tool !== null ? (
-          <p className="mt-5 flex items-center gap-3 font-mono text-[11px] tracking-[0.16em] text-signal-dim uppercase">
-            <span aria-hidden="true" className="hal-eye animate-pulse" />
-            {tool}
-          </p>
-        ) : null}
+          {tool !== null ? (
+            <p className="mt-5 flex items-center gap-3 font-mono text-[11px] tracking-[0.16em] text-signal-dim uppercase">
+              <span aria-hidden="true" className="hal-eye animate-pulse" />
+              {tool}
+            </p>
+          ) : null}
 
-        {error !== null ? (
-          <p className="note note-alert mt-5" role="alert">
-            {error}
-          </p>
-        ) : null}
+          {error !== null ? (
+            <p className="note note-alert mt-5" role="alert">
+              {error}
+            </p>
+          ) : null}
 
-        {/*
+          {toolFailure !== null ? (
+            <div className="note note-alert mt-5" role="alert">
+              <p className="text-pretty">
+                <strong className="font-semibold">O acervo não respondeu.</strong> A ferramenta{' '}
+                <code className="font-mono text-[13px]">{toolFailure}</code> falhou, então esta
+                resposta não vem do acervo da 2001 — não avalie como se viesse.
+              </p>
+              <p className="mt-2 font-mono text-[11px] tracking-wider text-signal-faint uppercase">
+                Rode `pnpm doctor` para ver qual serviço caiu
+              </p>
+            </div>
+          ) : null}
+
+          {/*
           The way into the dataset. It sits right under the recommendation it
           is about — under the composer it read as a footnote, and a curator
           who cannot find this button is a curator whose reasons never get
           recorded, which is the entire point of the tool.
         */}
-        {hasRecommended && !inFlight && !reviewing ? (
-          <div className="mt-8 border-t border-seam pt-6">
-            <button
-              type="button"
-              className="btn btn-quiet"
-              onClick={() => {
-                setReviewing(true);
-              }}
-            >
-              Avaliar esta indicação
-            </button>
-            <p className="mt-3 text-[14px] leading-relaxed text-signal-faint text-pretty">
-              Corrigir aqui — com o porquê — é o que vira dado da 2001.
-            </p>
-          </div>
-        ) : null}
-
-        <div ref={panel}>
-          {reviewing ? (
-            <CorrectionPanel
-              sessionId={sessionId ?? ''}
-              curator={curator}
-              initialRequest={lastRequest}
-              initialRecommendation={lastRecommendation}
-              onRecorded={() => {
-                setReviewing(false);
-                router.refresh();
-              }}
-            />
+          {hasRecommended && !inFlight && !reviewing ? (
+            <div className="mt-8 border-t border-seam pt-6">
+              <button
+                type="button"
+                className="btn btn-quiet"
+                onClick={() => {
+                  setReviewing(true);
+                }}
+              >
+                Avaliar esta indicação
+              </button>
+              <p className="mt-3 text-[14px] leading-relaxed text-signal-faint text-pretty">
+                Corrigir aqui — com o porquê — é o que vira dado da 2001.
+              </p>
+            </div>
           ) : null}
-        </div>
 
-        <div ref={bottom} />
+          <div ref={panel}>
+            {reviewing ? (
+              <CorrectionPanel
+                sessionId={sessionId ?? ''}
+                curator={curator}
+                initialRequest={lastRequest}
+                initialRecommendation={lastRecommendation}
+                onRecorded={() => {
+                  setReviewing(false);
+                  router.refresh();
+                }}
+              />
+            ) : null}
+          </div>
+        </div>
       </div>
 
       {/*
         Hidden while reviewing: the panel is a long form with its own buttons,
         and on a phone a pinned composer would eat a third of the screen to
         offer something nobody is doing right then.
+
+        `pb-[env(safe-area-inset-bottom)]` lives here rather than on `body`:
+        the shell is exactly `h-dvh`, so padding on the body would push it off
+        the screen by the size of the home bar.
       */}
       <div
         hidden={reviewing}
-        className="sticky bottom-0 border-t border-seam bg-space/95 backdrop-blur"
+        className="shrink-0 border-t border-seam pb-[env(safe-area-inset-bottom)]"
       >
         <div className="mx-auto w-full max-w-2xl px-4 py-3 sm:px-6">
           <div className="flex items-end gap-2">
@@ -351,10 +390,13 @@ export function IndicatorChat({
               onChange={(event) => {
                 setDraft(event.target.value);
 
-                // Grow with the text instead of hiding it behind a scrollbar.
+                // Grow with the text instead of hiding it behind a scrollbar,
+                // then — once it hits `max-h-40` and stops growing — keep the
+                // last line in view, which is where the caret is.
                 const field = event.currentTarget;
                 field.style.height = 'auto';
                 field.style.height = `${String(field.scrollHeight)}px`;
+                field.scrollTop = field.scrollHeight;
               }}
               onKeyDown={(event) => {
                 // Enter sends on a keyboard; on a touch keyboard Enter has to

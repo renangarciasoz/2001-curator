@@ -15,6 +15,7 @@
     "db:seed": "node --env-file-if-exists=.env --conditions react-server --import tsx scripts/seed-demo.ts",
     "db:studio": "prisma studio",
     "dev": "next dev",
+    "doctor": "node --env-file-if-exists=.env --conditions react-server --import tsx scripts/doctor.ts",
     "export:dataset": "node --env-file-if-exists=.env --conditions react-server --import tsx scripts/export-dataset.ts",
     "format": "prettier --write .",
     "format:check": "prettier --check .",

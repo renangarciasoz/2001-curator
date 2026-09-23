@@ -35,8 +35,14 @@ export function ChatLayout({
   const [drawerOpen, setDrawerOpen] = useState(false);
 
   return (
-    <div className="flex min-h-dvh flex-col">
-      <header className="sticky top-0 z-30 flex items-center gap-3 border-b border-seam bg-space/95 px-4 py-2 backdrop-blur sm:px-6">
+    /*
+      A fixed shell, not a long document. The page itself never scrolls: the
+      transcript scrolls inside its own region, and so does the rail. Letting
+      the window scroll meant the composer and the header drifted with the
+      text, and nothing could be scrolled to the bottom reliably.
+    */
+    <div className="flex h-dvh flex-col overflow-hidden">
+      <header className="z-30 flex shrink-0 items-center gap-3 border-b border-seam px-4 py-2 sm:px-6">
         <button
           type="button"
           aria-label="Conversas"
@@ -76,7 +82,7 @@ export function ChatLayout({
           }}
         />
 
-        <main className="flex min-w-0 flex-1 flex-col">{children}</main>
+        <main className="flex min-h-0 min-w-0 flex-1 flex-col">{children}</main>
       </div>
     </div>
   );
