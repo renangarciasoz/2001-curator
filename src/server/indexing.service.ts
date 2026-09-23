@@ -2,7 +2,8 @@ import 'server-only';
 
 import { db } from './db.service';
 import { getEmbeddingsProvider } from './embeddings/embeddings.service';
-import { ensureCollection, indexFilms } from './qdrant.service';
+import { env } from './env.config';
+import { collectionStatus, ensureCollection, indexFilms } from './qdrant.service';
 
 import type { EmbeddingsProvider } from './embeddings/embeddings.service';
 import type { FilmPoint } from './qdrant.service';
@@ -88,12 +89,18 @@ export function buildEmbeddingText(film: IndexableFilm): string {
  * By default it indexes only what is pending (`indexed_at` null), which is the
  * state ingestion and curatorial edits leave a film in.
  *
- * The exception is a collection that did not exist a moment ago. `indexed_at`
- * says a film was indexed, never into *which* Qdrant — so pointing the app at a
- * second one (a cloud cluster beside the local container) leaves every film
- * claiming to be indexed against a collection that is empty. Indexing "only
- * what is pending" into a brand-new collection would report `0 films indexed`
- * and look like a success, and the first search would find nothing.
+ * That default is only safe while Postgres and Qdrant agree, and `indexed_at`
+ * cannot tell whether they do: it records *that* a film was indexed, never into
+ * which cluster or collection. Three ordinary things break the agreement —
+ * pointing the app at a second Qdrant, a run that died partway (a rate limit
+ * is enough), a collection dropped by hand — and all three leave every film
+ * claiming to be indexed against a collection holding fewer vectors than that.
+ * Indexing "only what is pending" then reports `0 films indexed`, looks like a
+ * success, and the first search finds nothing.
+ *
+ * So the index is asked what it actually holds, and a shortfall forces a full
+ * pass. Counting is one cheap call, and it is the only thing that makes this
+ * function idempotent in the way its callers already assume it is.
  */
 export async function indexArchive(
   options: { readonly recreate?: boolean; readonly all?: boolean } = {},
@@ -102,7 +109,8 @@ export async function indexArchive(
 
   const { created } = await ensureCollection(provider.dimensions, options.recreate ?? false);
 
-  const reindexAll = created || (options.all ?? false) || (options.recreate ?? false);
+  const reindexAll =
+    created || (await indexIsBehind()) || (options.all ?? false) || (options.recreate ?? false);
 
   const films = await db.film.findMany({
     where: reindexAll ? {} : { indexedAt: null },
@@ -126,6 +134,22 @@ export async function indexArchive(
     dimensions: provider.dimensions,
     indexed,
   };
+}
+
+/**
+ * Does the collection hold fewer vectors than Postgres claims are indexed?
+ *
+ * Only a shortfall counts. More points than films is the normal aftermath of
+ * deleting a film — the stale point is skipped at search time — and is not a
+ * reason to rebuild the archive.
+ */
+async function indexIsBehind(): Promise<boolean> {
+  const [status, marked] = await Promise.all([
+    collectionStatus(env.QDRANT_COLLECTION),
+    db.film.count({ where: { indexedAt: { not: null } } }),
+  ]);
+
+  return status === null || status.points < marked;
 }
 
 async function indexBatch(
