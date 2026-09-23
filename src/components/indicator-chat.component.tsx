@@ -51,6 +51,7 @@ export function IndicatorChat({
 
   const partial = useRef('');
   const bottom = useRef<HTMLDivElement>(null);
+  const panel = useRef<HTMLDivElement>(null);
   const composer = useRef<HTMLTextAreaElement>(null);
 
   // Follow the answer as it streams; a chat that does not scroll itself makes
@@ -58,6 +59,16 @@ export function IndicatorChat({
   useEffect(() => {
     bottom.current?.scrollIntoView({ block: 'end' });
   }, [turns, tool]);
+
+  // The review panel opens below the fold. Without this the button looks like
+  // it did nothing — and it is the button the whole dataset depends on. Its
+  // *top* is what has to be on screen: it is a form to fill from the start,
+  // not a message to catch up with.
+  useEffect(() => {
+    if (reviewing) {
+      panel.current?.scrollIntoView({ block: 'start', behavior: 'smooth' });
+    }
+  }, [reviewing]);
 
   async function send(message: string): Promise<void> {
     setError(null);
@@ -277,23 +288,56 @@ export function IndicatorChat({
           </p>
         ) : null}
 
-        {reviewing ? (
-          <CorrectionPanel
-            sessionId={sessionId ?? ''}
-            curator={curator}
-            initialRequest={lastRequest}
-            initialRecommendation={lastRecommendation}
-            onRecorded={() => {
-              setReviewing(false);
-              router.refresh();
-            }}
-          />
+        {/*
+          The way into the dataset. It sits right under the recommendation it
+          is about — under the composer it read as a footnote, and a curator
+          who cannot find this button is a curator whose reasons never get
+          recorded, which is the entire point of the tool.
+        */}
+        {hasRecommended && !inFlight && !reviewing ? (
+          <div className="mt-8 border-t border-seam pt-6">
+            <button
+              type="button"
+              className="btn btn-quiet"
+              onClick={() => {
+                setReviewing(true);
+              }}
+            >
+              Avaliar esta indicação
+            </button>
+            <p className="mt-3 text-[14px] leading-relaxed text-signal-faint text-pretty">
+              Corrigir aqui — com o porquê — é o que vira dado da 2001.
+            </p>
+          </div>
         ) : null}
+
+        <div ref={panel}>
+          {reviewing ? (
+            <CorrectionPanel
+              sessionId={sessionId ?? ''}
+              curator={curator}
+              initialRequest={lastRequest}
+              initialRecommendation={lastRecommendation}
+              onRecorded={() => {
+                setReviewing(false);
+                router.refresh();
+              }}
+            />
+          ) : null}
+        </div>
 
         <div ref={bottom} />
       </div>
 
-      <div className="sticky bottom-0 border-t border-seam bg-space/95 backdrop-blur">
+      {/*
+        Hidden while reviewing: the panel is a long form with its own buttons,
+        and on a phone a pinned composer would eat a third of the screen to
+        offer something nobody is doing right then.
+      */}
+      <div
+        hidden={reviewing}
+        className="sticky bottom-0 border-t border-seam bg-space/95 backdrop-blur"
+      >
         <div className="mx-auto w-full max-w-2xl px-4 py-3 sm:px-6">
           <div className="flex items-end gap-2">
             <textarea
@@ -335,21 +379,9 @@ export function IndicatorChat({
             </button>
           </div>
 
-          {hasRecommended && !inFlight ? (
-            <button
-              type="button"
-              className="label-caps mt-2 cursor-pointer transition-colors hover:text-hal"
-              onClick={() => {
-                setReviewing((open) => !open);
-              }}
-            >
-              {reviewing ? 'Fechar avaliação' : 'Avaliar esta recomendação'}
-            </button>
-          ) : null}
-
           {!hasRecommended && turns.length > 0 && !inFlight ? (
             <p className="mt-2 font-mono text-[10px] tracking-wider text-signal-faint uppercase">
-              A avaliação abre quando houver uma indicação
+              Ainda perguntando — a avaliação abre quando ele indicar
             </p>
           ) : null}
         </div>

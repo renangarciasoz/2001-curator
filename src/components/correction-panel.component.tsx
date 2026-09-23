@@ -380,7 +380,7 @@ function Check({
         type="checkbox"
         checked={checked}
         disabled={disabled}
-        className="size-4 shrink-0 translate-y-0.5 accent-accent"
+        className="size-4 shrink-0 translate-y-0.5 accent-hal"
         onChange={(event) => {
           onChange(event.target.checked);
         }}
