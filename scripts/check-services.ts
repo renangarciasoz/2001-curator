@@ -110,6 +110,11 @@ async function checkPostgres(): Promise<Check> {
 }
 
 async function checkQdrant(): Promise<Check> {
+  // Where it is pointing, with no credentials in it. "fetch failed" without
+  // this says nothing: a stopped container and a cloud URL missing its port
+  // produce the identical message, and they are opposite problems.
+  const target = describeTarget(env.QDRANT_URL);
+
   try {
     const status = await collectionStatus(env.QDRANT_COLLECTION);
 
@@ -117,7 +122,7 @@ async function checkQdrant(): Promise<Check> {
       return {
         name: 'qdrant',
         ok: false,
-        detail: `reachable, but collection "${env.QDRANT_COLLECTION}" does not exist`,
+        detail: `${target} answered, but collection "${env.QDRANT_COLLECTION}" does not exist`,
         fix: 'pnpm index:embeddings --recreate',
       };
     }
@@ -126,7 +131,7 @@ async function checkQdrant(): Promise<Check> {
       return {
         name: 'qdrant',
         ok: false,
-        detail: `collection "${env.QDRANT_COLLECTION}" exists but holds no vectors`,
+        detail: `"${env.QDRANT_COLLECTION}" at ${target} exists but holds no vectors`,
         fix: 'pnpm index:embeddings',
       };
     }
@@ -134,16 +139,35 @@ async function checkQdrant(): Promise<Check> {
     return {
       name: 'qdrant',
       ok: true,
-      detail: `${String(status.points)} vectors, ${String(status.dimensions)} dimensions`,
+      detail: `${String(status.points)} vectors, ${String(status.dimensions)} dimensions, in "${env.QDRANT_COLLECTION}" at ${target}`,
     };
   } catch (e) {
     return {
       name: 'qdrant',
       ok: false,
-      detail: describeError(e),
-      fix: 'docker compose up -d qdrant, and check QDRANT_URL / QDRANT_API_KEY',
+      detail: `${target}: ${describeError(e)}`,
+      fix: isCloud(env.QDRANT_URL)
+        ? 'a Qdrant Cloud URL needs its REST port — https://<cluster>.cloud.qdrant.io:6333'
+        : 'docker compose -f compose.yaml -f compose.dev.yaml up -d qdrant',
     };
   }
+}
+
+/** Protocol, host and port. Never the API key, which travels in a header. */
+function describeTarget(url: string): string {
+  try {
+    const parsed = new URL(url);
+
+    return parsed.port.length > 0
+      ? `${parsed.protocol}//${parsed.hostname}:${parsed.port}`
+      : `${parsed.protocol}//${parsed.hostname} (no port — defaults to ${parsed.protocol === 'https:' ? '443' : '80'})`;
+  } catch {
+    return `QDRANT_URL is not a valid URL`;
+  }
+}
+
+function isCloud(url: string): boolean {
+  return url.includes('cloud.qdrant.io');
 }
 
 async function checkEmbeddings(): Promise<Check> {
