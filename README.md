@@ -367,10 +367,15 @@ statements they issue.
 
 ### Two env files, and how to switch
 
-`.env` is local, always. Production credentials live in `.env.neon`, which
+`.env` is local, always. Production credentials live in `.env.prod`, which
 nothing reads automatically — `pnpm dev`, the Prisma CLI and every script see
 localhost and only localhost. That is deliberate: a production URL in `.env`
 makes `pnpm dev` write to production and turns the local database into scenery.
+
+The name is `.env.prod`, not `.env.production`: Next.js loads
+`.env.production` on its own whenever NODE_ENV is production, which `next
+build` sets, so a local `pnpm build` would silently connect to the production
+database. `.env.prod` means nothing to any tool except `pnpm prod`.
 
 To reach production, say so:
 
@@ -380,7 +385,7 @@ pnpm prod pnpm ingest:tmdb -- --title "Rashomon"
 pnpm prod pnpm index:embeddings -- --recreate
 ```
 
-`pnpm prod` is `scripts/with-env.mjs`, which layers `.env.neon` over the
+`pnpm prod` is `scripts/with-env.mjs`, which layers `.env.prod` over the
 process environment and prints which variables it overrode before running
 anything. `--env-file` does not override a variable already set in the
 environment, so the production values win over `.env` inside that command and

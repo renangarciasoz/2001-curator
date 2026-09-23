@@ -1,14 +1,19 @@
 /**
  * Runs a command with the variables from another env file layered on top.
  *
- *   node scripts/with-env.mjs .env.neon pnpm db:migrate:deploy
+ *   node scripts/with-env.mjs .env.prod pnpm db:migrate:deploy
  *   pnpm prod pnpm db:migrate:deploy          # the same, shorter
  *
  * Why this exists: `.env` is the file everything reads by accident. Putting
  * production credentials there makes `pnpm dev` write to production and turns
- * the local database into scenery. Keeping them in `.env.neon` and loading it
+ * the local database into scenery. Keeping them in `.env.prod` and loading it
  * only here makes reaching production a deliberate act with its own command —
  * and the banner below means you can never be unsure which one you just hit.
+ *
+ * The file is `.env.prod` and not `.env.production` for one reason: Next.js
+ * loads `.env.production` by itself whenever NODE_ENV is production, which
+ * `next build` sets. A local `pnpm build` would then quietly point at the
+ * production database. `.env.prod` carries no meaning to any tool but this one.
  *
  * The Prisma CLI only ever reads `.env`, so passing variables through the
  * process environment is the one mechanism that works for both Prisma and the

@@ -3,7 +3,7 @@
  * them, and says which one is broken.
  *
  *   pnpm check:services              # against .env
- *   pnpm prod pnpm check:services    # against .env.neon
+ *   pnpm prod pnpm check:services    # against .env.prod
  *
  * The name is namespaced with a colon for a reason: `pnpm doctor` is a built-in
  * pnpm command, so a script called `doctor` is shadowed and never runs. Every
