@@ -78,11 +78,41 @@ export class AmbiguousFeedbackError extends AppError {
   }
 }
 
-/** Turns an `unknown` from a `catch` into a message that is safe to log. */
+/**
+ * Turns an `unknown` from a `catch` into a message that is safe to log.
+ *
+ * The `cause` chain is followed because `fetch` is the main way this project
+ * talks to anything, and every network failure it has arrives as the same three
+ * words: "fetch failed". What actually happened — ENOTFOUND, ECONNREFUSED,
+ * ETIMEDOUT, a certificate rejection — is one level down, in the cause. Dropping
+ * it turns four different problems, with four different fixes, into one
+ * unactionable string.
+ *
+ * Causes are appended, not substituted: the outer message says which operation
+ * failed, and the inner one says why.
+ */
 export function describeError(e: unknown): string {
-  if (e instanceof Error) {
-    return e.message;
+  if (!(e instanceof Error)) {
+    return String(e);
   }
 
-  return String(e);
+  const parts: string[] = [e.message];
+  let current: unknown = e.cause;
+
+  // Bounded: a cause chain is normally one or two deep, and a cyclic one must
+  // not hang the logger.
+  for (let depth = 0; depth < 4 && current instanceof Error; depth += 1) {
+    const code: unknown = Reflect.get(current, 'code');
+    const detail = typeof code === 'string' ? `${code}: ${current.message}` : current.message;
+
+    // A wrapper that already quoted its cause ("qdrant unavailable: fetch
+    // failed") should not repeat it.
+    if (!parts.some((part) => part.includes(detail))) {
+      parts.push(detail);
+    }
+
+    current = current.cause;
+  }
+
+  return parts.join(' — ');
 }

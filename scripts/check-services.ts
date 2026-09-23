@@ -255,7 +255,7 @@ async function checkSearch(): Promise<Check> {
 try {
   await main();
 } catch (e) {
-  console.error(`Doctor failed: ${describeError(e)}`);
+  console.error(`Service check failed: ${describeError(e)}`);
   process.exitCode = 1;
 } finally {
   await db.$disconnect();
