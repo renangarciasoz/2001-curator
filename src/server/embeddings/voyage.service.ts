@@ -6,6 +6,7 @@ import { ProviderUnavailableError } from '@/lib/app-error.util';
 
 import { env } from '../env.config';
 
+import { postWithRetry } from './http-retry.util';
 import { orderByIndex } from './order-by-index.util';
 
 import type { EmbeddingsProvider, TextKind } from './embeddings.service';
@@ -58,12 +59,11 @@ async function generate(
     );
   }
 
-  let response: Response;
-
-  try {
-    response = await fetch(VOYAGE_URL, {
+  const response = await postWithRetry(
+    'voyage',
+    VOYAGE_URL,
+    {
       method: 'POST',
-      cache: 'no-store',
       headers: {
         Authorization: `Bearer ${env.VOYAGE_API_KEY}`,
         'Content-Type': 'application/json',
@@ -73,15 +73,9 @@ async function generate(
         input: texts,
         input_type: kind === 'query' ? 'query' : 'document',
       }),
-      signal: signal ?? null,
-    });
-  } catch (e) {
-    throw new ProviderUnavailableError('voyage', 'network failure', { cause: e });
-  }
-
-  if (!response.ok) {
-    throw new ProviderUnavailableError('voyage', `HTTP ${String(response.status)}`);
-  }
+    },
+    signal,
+  );
 
   const result = ResponseSchema.safeParse(await response.json());
 

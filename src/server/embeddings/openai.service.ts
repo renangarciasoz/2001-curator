@@ -6,6 +6,7 @@ import { ProviderUnavailableError } from '@/lib/app-error.util';
 
 import { env } from '../env.config';
 
+import { postWithRetry } from './http-retry.util';
 import { orderByIndex } from './order-by-index.util';
 
 import type { EmbeddingsProvider } from './embeddings.service';
@@ -54,26 +55,19 @@ async function generate(
     );
   }
 
-  let response: Response;
-
-  try {
-    response = await fetch(OPENAI_URL, {
+  const response = await postWithRetry(
+    'openai',
+    OPENAI_URL,
+    {
       method: 'POST',
-      cache: 'no-store',
       headers: {
         Authorization: `Bearer ${env.OPENAI_API_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ model, input: texts }),
-      signal: signal ?? null,
-    });
-  } catch (e) {
-    throw new ProviderUnavailableError('openai', 'network failure', { cause: e });
-  }
-
-  if (!response.ok) {
-    throw new ProviderUnavailableError('openai', `HTTP ${String(response.status)}`);
-  }
+    },
+    signal,
+  );
 
   const result = ResponseSchema.safeParse(await response.json());
 
