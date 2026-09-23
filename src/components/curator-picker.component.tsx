@@ -10,33 +10,47 @@ import type { CuratorName } from '@/lib/curator.constant';
 /**
  * The only thing standing between a curator and the tool: her own name.
  *
- * There is no password. This is not a door — it is a label. But the label is
- * load-bearing: it decides who every review in the dataset is attributed to,
- * and without it the quality gate cannot tell agreement from disagreement from
- * a single reading. Hence two large named targets, one tap, and then a year
- * before the question is asked again.
+ * The name is a label, not a credential, but it is load-bearing — it decides
+ * who every review in the dataset is attributed to, and without it the quality
+ * gate cannot tell agreement from disagreement from a single reading. Hence two
+ * large named targets, one tap, and then a year before the question is asked
+ * again.
+ *
+ * `requiresPassword` comes from the server, which is the only side that knows
+ * whether `APP_CURATION_PASSWORD` is set. Deciding it here would be a guess,
+ * and guessing wrong hides a field the deployment demands — which is exactly
+ * how this screen came to answer 401 forever on the public URL.
  */
-export function CuratorPicker() {
+export function CuratorPicker({ requiresPassword }: { requiresPassword: boolean }) {
   const router = useRouter();
   const [choosing, setChoosing] = useState<CuratorName | null>(null);
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState<string | null>(null);
 
   async function enter(curator: CuratorName): Promise<void> {
     setChoosing(curator);
+    setError(null);
 
     try {
       const response = await fetch('/api/auth', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ curator, password: '' }),
+        body: JSON.stringify({ curator, password }),
       });
 
       if (!response.ok) {
+        setError(
+          response.status === 401
+            ? 'Senha de curadoria incorreta.'
+            : 'Não foi possível entrar. Tente de novo.',
+        );
         setChoosing(null);
         return;
       }
 
       router.refresh();
     } catch {
+      setError('A rede falhou. Tente de novo.');
       setChoosing(null);
     }
   }
@@ -54,6 +68,33 @@ export function CuratorPicker() {
         <h1 className="mt-10 font-display text-[32px] leading-[1.1] font-light">
           Quem está indicando?
         </h1>
+
+        {requiresPassword ? (
+          <div className="mt-8">
+            <label htmlFor="password" className="label-caps mb-2 block">
+              Senha de curadoria
+            </label>
+            <input
+              id="password"
+              type="password"
+              value={password}
+              autoComplete="current-password"
+              className="field font-mono tracking-widest"
+              onChange={(event) => {
+                setPassword(event.target.value);
+              }}
+            />
+            <p className="mt-2 font-mono text-[10px] tracking-wider text-signal-faint uppercase">
+              Depois disso, trocar de nome não pede senha de novo
+            </p>
+          </div>
+        ) : null}
+
+        {error !== null ? (
+          <p className="note note-alert mt-6" role="alert">
+            {error}
+          </p>
+        ) : null}
 
         <div className="mt-8 grid grid-cols-2 gap-px border border-seam bg-seam">
           {CURATORS.map((name) => (

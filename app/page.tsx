@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation';
 
 import { CuratorPicker } from '@/components/curator-picker.component';
 import { currentCurator } from '@/server/auth.service';
+import { env } from '@/server/env.config';
 import { listSessions } from '@/server/session.service';
 
 /**
@@ -17,7 +18,9 @@ export default async function Home() {
   const curator = await currentCurator();
 
   if (curator === null) {
-    return <CuratorPicker />;
+    // Only the server knows whether a password is configured; the picker must
+    // not guess, or it hides a field the deployment requires.
+    return <CuratorPicker requiresPassword={env.APP_CURATION_PASSWORD.length > 0} />;
   }
 
   const [latest] = await listSessions(curator, 1);

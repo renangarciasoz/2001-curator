@@ -20,17 +20,29 @@ const COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 365;
  *
  * This is identification, not authentication. Sonia and Mirella tap their name
  * once and the cookie carries it for a year; there is no password unless
- * `APP_CURATION_PASSWORD` is set, and by default it is not.
+ * `APP_CURATION_PASSWORD` is set, which it is not locally and is on a public
+ * deployment.
  *
- * The cookie is still HMAC-signed, because the name in it decides who every
- * review in the dataset is attributed to. Signing stops the value being edited
- * by hand; it is not pretending to keep anyone out.
+ * The password guards *entry*, not every call. Someone already carrying a valid
+ * cookie is past the door, so switching between Sonia and Mirella stays the one
+ * tap it has to be — a curator correcting whose name is on her reviews must not
+ * be sent back to a password prompt to do it.
  *
- * @throws {CuratorNotAuthenticatedError} when a password is configured and does
- *   not match.
+ * The cookie is HMAC-signed either way, because the name in it decides who
+ * every review in the dataset is attributed to. Signing stops the value being
+ * edited by hand; on its own it keeps nobody out.
+ *
+ * @throws {CuratorNotAuthenticatedError} when a password is configured, nobody
+ *   is signed in yet, and the password does not match.
  */
 export async function signIn(curator: CuratorName, password: string): Promise<void> {
-  if (env.APP_CURATION_PASSWORD.length > 0 && !passwordMatches(password)) {
+  const alreadyIdentified = await currentCurator();
+
+  if (
+    alreadyIdentified === null &&
+    env.APP_CURATION_PASSWORD.length > 0 &&
+    !passwordMatches(password)
+  ) {
     throw new CuratorNotAuthenticatedError('curation password does not match');
   }
 
