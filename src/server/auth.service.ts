@@ -4,7 +4,7 @@ import { createHmac, timingSafeEqual } from 'node:crypto';
 
 import { cookies } from 'next/headers';
 
-import { CuratorNotAuthenticatedError, InvalidConfigurationError } from '@/lib/app-error.util';
+import { CuratorNotAuthenticatedError } from '@/lib/app-error.util';
 import { isCurator } from '@/lib/curator.constant';
 
 import { env } from './env.config';
@@ -12,33 +12,24 @@ import { env } from './env.config';
 import type { CuratorName } from '@/lib/curator.constant';
 
 const COOKIE_NAME = 'curator_2001_session';
-const COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 30;
+// A year: they identify themselves once and the tool stops asking.
+const COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 365;
 
 /**
- * Signs a curator into this browser session.
+ * Records who is using the tool in this browser.
  *
- * The cookie is HMAC-signed so nobody can change identity by editing the value.
- * What matters here is not secrecy but correct attribution of every review in
- * the dataset.
+ * This is identification, not authentication. Sonia and Mirella tap their name
+ * once and the cookie carries it for a year; there is no password unless
+ * `APP_CURATION_PASSWORD` is set, and by default it is not.
  *
- * `APP_CURATION_PASSWORD` is optional in development, where the tool is only
- * reachable on localhost and typing a password on every reload buys nothing.
- * It is mandatory in production: without it, anyone who finds the URL picks a
- * curator's name and writes to the dataset under it — which is the one asset
- * this whole project exists to protect.
+ * The cookie is still HMAC-signed, because the name in it decides who every
+ * review in the dataset is attributed to. Signing stops the value being edited
+ * by hand; it is not pretending to keep anyone out.
  *
- * @throws {CuratorNotAuthenticatedError} when the password does not match, or
- *   when production has no password configured at all.
+ * @throws {CuratorNotAuthenticatedError} when a password is configured and does
+ *   not match.
  */
 export async function signIn(curator: CuratorName, password: string): Promise<void> {
-  const isProduction = process.env.NODE_ENV === 'production';
-
-  if (isProduction && env.APP_CURATION_PASSWORD.length === 0) {
-    // Its own error type, not a failed sign-in: the operator needs to see a
-    // missing setting, not a curator wondering whether she mistyped.
-    throw new InvalidConfigurationError('APP_CURATION_PASSWORD is required in production');
-  }
-
   if (env.APP_CURATION_PASSWORD.length > 0 && !passwordMatches(password)) {
     throw new CuratorNotAuthenticatedError('curation password does not match');
   }

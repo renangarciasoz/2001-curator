@@ -1,10 +1,10 @@
 import { notFound, redirect } from 'next/navigation';
 
+import { ChatLayout } from '@/components/chat-layout.component';
 import { IndicatorChat } from '@/components/indicator-chat.component';
-import { PageShell } from '@/components/page-shell.component';
 import { currentCurator } from '@/server/auth.service';
 import { db } from '@/server/db.service';
-import { loadTranscript } from '@/server/session.service';
+import { listSessions, loadTranscript } from '@/server/session.service';
 
 export default async function ChatPage({ params }: { params: Promise<{ sessionId: string }> }) {
   const curator = await currentCurator();
@@ -17,7 +17,7 @@ export default async function ChatPage({ params }: { params: Promise<{ sessionId
 
   const session = await db.session.findUnique({
     where: { id: sessionId },
-    select: { id: true, curator: true, profile: { select: { userId: true } } },
+    select: { id: true, curator: true },
   });
 
   if (session === null) {
@@ -30,15 +30,14 @@ export default async function ChatPage({ params }: { params: Promise<{ sessionId
     notFound();
   }
 
-  const transcript = await loadTranscript(sessionId);
+  const [transcript, sessions] = await Promise.all([
+    loadTranscript(sessionId),
+    listSessions(curator),
+  ]);
 
   return (
-    <PageShell
-      curator={curator}
-      eyebrow={session.profile !== null ? `Persona · ${session.profile.userId}` : 'Conversa avulsa'}
-      title="Conversa"
-    >
+    <ChatLayout curator={curator} sessions={sessions} activeSessionId={sessionId}>
       <IndicatorChat sessionId={sessionId} curator={curator} initialTranscript={transcript} />
-    </PageShell>
+    </ChatLayout>
   );
 }

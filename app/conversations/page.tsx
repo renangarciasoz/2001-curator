@@ -39,22 +39,28 @@ export default async function ConversationsPage() {
     redirect('/');
   }
 
-  const conversations = await db.conversation.findMany({
-    select: {
-      id: true,
-      userRequest: true,
-      correction: true,
-      correctionReason: true,
-      disagreementNote: true,
-      reviewedBy: true,
-      consensus: true,
-      quality: true,
-      confidence: true,
-      createdAt: true,
-    },
-    orderBy: { createdAt: 'desc' },
-    take: LIMIT,
-  });
+  const [films, curated, absorbed, underReview, conversations] = await Promise.all([
+    db.film.count(),
+    db.film.count({ where: { curatorialSource: 'CURATION_2001' } }),
+    db.conversation.count({ where: { quality: 'ABSORB' } }),
+    db.conversation.count({ where: { quality: 'REVIEW' } }),
+    db.conversation.findMany({
+      select: {
+        id: true,
+        userRequest: true,
+        correction: true,
+        correctionReason: true,
+        disagreementNote: true,
+        reviewedBy: true,
+        consensus: true,
+        quality: true,
+        confidence: true,
+        createdAt: true,
+      },
+      orderBy: { createdAt: 'desc' },
+      take: LIMIT,
+    }),
+  ]);
 
   return (
     <PageShell
@@ -69,7 +75,18 @@ export default async function ConversationsPage() {
       }
       width="wide"
     >
-      <div className="mb-10 border-t border-seam-lit pt-6">
+      <dl className="grid grid-cols-2 gap-px border border-seam bg-seam sm:grid-cols-4">
+        <Readout label="Filmes" value={films} />
+        <Readout
+          label="Com curadoria"
+          value={curated}
+          footnote={films > curated ? `${String(films - curated)} sem estudo` : undefined}
+        />
+        <Readout label="Absorvidas" value={absorbed} />
+        <Readout label="Em revisão" value={underReview} alert={underReview > 0} />
+      </dl>
+
+      <div className="mt-10 mb-10 border-t border-seam-lit pt-6">
         <a href="/api/export" className="btn btn-quiet">
           Baixar dataset (JSONL)
         </a>
@@ -140,5 +157,34 @@ export default async function ConversationsPage() {
         </ol>
       )}
     </PageShell>
+  );
+}
+
+/** An instrument readout: legend above, figure below, nothing else. */
+function Readout({
+  label,
+  value,
+  footnote,
+  alert = false,
+}: {
+  label: string;
+  value: number;
+  footnote?: string | undefined;
+  alert?: boolean;
+}) {
+  return (
+    <div className="bg-panel px-4 py-5">
+      <dt className="label-caps">{label}</dt>
+      <dd
+        className={`mt-2 font-display text-[34px] leading-none font-light tabular-nums ${
+          alert ? 'text-hal' : 'text-signal'
+        }`}
+      >
+        {value}
+      </dd>
+      {footnote !== undefined ? (
+        <p className="mt-2 font-mono text-[10px] tracking-wider text-signal-faint">{footnote}</p>
+      ) : null}
+    </div>
   );
 }

@@ -57,6 +57,8 @@
     color: var(--color-signal);
     font-family: var(--font-ui);
     -webkit-font-smoothing: antialiased;
+    /* The composer is pinned to the bottom; keep it clear of the home bar. */
+    padding-bottom: env(safe-area-inset-bottom);
   }
 
   ::selection {
@@ -115,15 +117,20 @@
    * floating above it. Repeating these utilities at ~30 call sites would bury
    * the markup that actually differs.
    */
+  /*
+   * 16px is not a style choice: iOS Safari zooms the whole page when a focused
+   * input is smaller, and the curators work from their phones.
+   */
   .field {
-    @apply w-full border border-seam bg-recess px-3 py-2.5;
-    @apply font-ui text-[15px] leading-relaxed text-signal;
+    @apply w-full border border-seam bg-recess px-3 py-3;
+    @apply font-ui text-[16px] leading-relaxed text-signal;
     @apply placeholder:text-signal-faint;
     @apply focus:border-hal focus:outline-none;
   }
 
+  /* min-height keeps every control at a thumb-sized tap target. */
   .btn {
-    @apply inline-flex cursor-pointer items-center gap-2 border px-4 py-2.5;
+    @apply inline-flex min-h-11 cursor-pointer items-center gap-2 border px-4 py-2.5;
     @apply font-mono text-[11px] font-medium tracking-[0.16em] uppercase;
     @apply transition-colors disabled:cursor-not-allowed disabled:opacity-40;
   }

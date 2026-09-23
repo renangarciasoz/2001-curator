@@ -8,125 +8,77 @@ import { CURATORS, curatorLabel } from '@/lib/curator.constant';
 import type { CuratorName } from '@/lib/curator.constant';
 
 /**
- * A login that only has to do one thing: tell Sonia from Mirella.
+ * The only thing standing between a curator and the tool: her own name.
  *
- * That distinction is not interface comfort — it is what makes every review
- * traceable. Without it the quality gate cannot tell agreement from
- * disagreement from a single reading. Hence two large named targets rather
- * than a dropdown: picking the wrong one corrupts attribution in the dataset.
+ * There is no password. This is not a door — it is a label. But the label is
+ * load-bearing: it decides who every review in the dataset is attributed to,
+ * and without it the quality gate cannot tell agreement from disagreement from
+ * a single reading. Hence two large named targets, one tap, and then a year
+ * before the question is asked again.
  */
-export function CuratorPicker({ requiresPassword }: { requiresPassword: boolean }) {
+export function CuratorPicker() {
   const router = useRouter();
-  const [curator, setCurator] = useState<CuratorName>('SONIA');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState<string | null>(null);
-  const [submitting, setSubmitting] = useState(false);
+  const [choosing, setChoosing] = useState<CuratorName | null>(null);
 
-  async function signIn(): Promise<void> {
-    setError(null);
-    setSubmitting(true);
+  async function enter(curator: CuratorName): Promise<void> {
+    setChoosing(curator);
 
     try {
       const response = await fetch('/api/auth', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ curator, password }),
+        body: JSON.stringify({ curator, password: '' }),
       });
 
       if (!response.ok) {
-        const body: unknown = await response.json().catch(() => null);
-        const message =
-          typeof body === 'object' && body !== null ? Reflect.get(body, 'message') : null;
-
-        setError(
-          typeof message === 'string'
-            ? message
-            : 'Não foi possível entrar. Confira a senha de curadoria.',
-        );
+        setChoosing(null);
         return;
       }
 
       router.refresh();
-    } finally {
-      setSubmitting(false);
+    } catch {
+      setChoosing(null);
     }
   }
 
   return (
-    <form
-      onSubmit={(event) => {
-        event.preventDefault();
-        void signIn();
-      }}
-    >
-      <fieldset>
-        <legend className="label-caps mb-4">Identificação</legend>
+    <main className="flex min-h-dvh flex-col justify-center px-6 py-12">
+      <div className="mx-auto w-full max-w-md">
+        <div className="flex items-center gap-3">
+          <span className="monolith" aria-hidden="true" />
+          <span className="font-display text-[15px] font-medium tracking-[0.34em] uppercase">
+            Indicador <span className="text-hal">2001</span>
+          </span>
+        </div>
 
-        <div className="grid grid-cols-2 gap-px border border-seam bg-seam">
+        <h1 className="mt-10 font-display text-[32px] leading-[1.1] font-light">
+          Quem está indicando?
+        </h1>
+
+        <div className="mt-8 grid grid-cols-2 gap-px border border-seam bg-seam">
           {CURATORS.map((name) => (
-            <label
+            <button
               key={name}
-              className={`group relative cursor-pointer px-4 py-7 text-center transition-colors ${
-                curator === name ? 'bg-recess' : 'bg-panel hover:bg-recess'
-              }`}
+              type="button"
+              disabled={choosing !== null}
+              className="cursor-pointer bg-panel px-4 py-10 transition-colors hover:bg-recess disabled:opacity-50"
+              onClick={() => void enter(name)}
             >
-              <input
-                type="radio"
-                name="curator"
-                value={name}
-                checked={curator === name}
-                className="sr-only"
-                onChange={() => {
-                  setCurator(name);
-                }}
-              />
               <span
-                className={`font-display text-[22px] font-light tracking-[0.18em] uppercase transition-colors ${
-                  curator === name ? 'text-signal' : 'text-signal-faint'
+                className={`font-display text-[22px] font-light tracking-[0.18em] uppercase ${
+                  choosing === name ? 'text-hal' : 'text-signal'
                 }`}
               >
                 {curatorLabel(name)}
               </span>
-              {curator === name ? (
-                <span
-                  aria-hidden="true"
-                  className="absolute inset-x-0 bottom-0 h-px bg-hal"
-                />
-              ) : null}
-            </label>
+            </button>
           ))}
         </div>
-      </fieldset>
 
-      {requiresPassword ? (
-        <div className="mt-8">
-          <label htmlFor="password" className="label-caps mb-2 block">
-            Senha de curadoria
-          </label>
-          <input
-            id="password"
-            type="password"
-            value={password}
-            autoComplete="current-password"
-            className="field font-mono tracking-widest"
-            onChange={(event) => {
-              setPassword(event.target.value);
-            }}
-          />
-        </div>
-      ) : null}
-
-      {error !== null ? (
-        <p className="note note-alert mt-6" role="alert">
-          {error}
+        <p className="mt-6 font-mono text-[10px] tracking-wider text-signal-faint uppercase">
+          Fica salvo neste aparelho — dá para trocar depois
         </p>
-      ) : null}
-
-      <div className="mt-8">
-        <button type="submit" disabled={submitting} className="btn btn-primary">
-          {submitting ? 'Abrindo…' : 'Entrar'}
-        </button>
       </div>
-    </form>
+    </main>
   );
 }

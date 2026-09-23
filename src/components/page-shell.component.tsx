@@ -1,13 +1,14 @@
 import Link from 'next/link';
 
-import { curatorLabel } from '@/lib/curator.constant';
-
-import { SignOut } from './sign-out.component';
+import { CuratorSwitch } from './curator-switch.component';
 
 import type { ReactNode } from 'react';
 
 /**
- * The masthead and reading column every page sits in.
+ * The masthead and reading column for the pages that are *read* rather than
+ * worked in — today that is the dataset.
+ *
+ * The chat does not use this: it fills the viewport and pins its own composer.
  *
  * `prose` caps the measure at roughly 70 characters, which is where long
  * curatorial text stops being comfortable. `wide` exists for the dataset, the
@@ -42,12 +43,7 @@ export function PageShell({
           </span>
         </Link>
 
-        {curator !== undefined ? (
-          <div className="flex items-center gap-5">
-            <span className="label-caps">{curatorLabel(curator)}</span>
-            <SignOut />
-          </div>
-        ) : null}
+        {curator !== undefined ? <CuratorSwitch curator={curator} /> : null}
       </header>
 
       <main>
