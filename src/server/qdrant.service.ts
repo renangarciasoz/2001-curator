@@ -65,7 +65,7 @@ function client(): QdrantClient {
  *
  * @throws {IncompatibleIndexError} when the vector size does not match.
  */
-export async function ensureCollection(dimensions: number, recreate = false): Promise<void> {
+export async function ensureCollection(dimensions: number, recreate = false): Promise<Created> {
   const name = env.QDRANT_COLLECTION;
   const existing = await describeCollection(name);
 
@@ -82,7 +82,7 @@ export async function ensureCollection(dimensions: number, recreate = false): Pr
       );
     }
 
-    return;
+    return { created: false };
   }
 
   try {
@@ -92,7 +92,19 @@ export async function ensureCollection(dimensions: number, recreate = false): Pr
   } catch (e) {
     throw new ProviderUnavailableError('qdrant', `could not create "${name}"`, { cause: e });
   }
+
+  return { created: true };
 }
+
+/**
+ * Whether the collection had to be created.
+ *
+ * The caller needs this because `film.indexed_at` in Postgres records *that* a
+ * film was indexed, not *where*. Point the app at a second Qdrant — a cloud
+ * cluster beside the local container — and every film still claims to be
+ * indexed while the new collection is empty.
+ */
+export type Created = { readonly created: boolean };
 
 /** Writes (or rewrites) the vectors of a batch of films. */
 export async function indexFilms(points: readonly FilmPoint[]): Promise<void> {

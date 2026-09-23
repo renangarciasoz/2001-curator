@@ -87,15 +87,22 @@ export function buildEmbeddingText(film: IndexableFilm): string {
  *
  * By default it indexes only what is pending (`indexed_at` null), which is the
  * state ingestion and curatorial edits leave a film in.
+ *
+ * The exception is a collection that did not exist a moment ago. `indexed_at`
+ * says a film was indexed, never into *which* Qdrant — so pointing the app at a
+ * second one (a cloud cluster beside the local container) leaves every film
+ * claiming to be indexed against a collection that is empty. Indexing "only
+ * what is pending" into a brand-new collection would report `0 films indexed`
+ * and look like a success, and the first search would find nothing.
  */
 export async function indexArchive(
   options: { readonly recreate?: boolean; readonly all?: boolean } = {},
 ): Promise<IndexingResult> {
   const provider = getEmbeddingsProvider();
 
-  await ensureCollection(provider.dimensions, options.recreate ?? false);
+  const { created } = await ensureCollection(provider.dimensions, options.recreate ?? false);
 
-  const reindexAll = (options.all ?? false) || (options.recreate ?? false);
+  const reindexAll = created || (options.all ?? false) || (options.recreate ?? false);
 
   const films = await db.film.findMany({
     where: reindexAll ? {} : { indexedAt: null },
