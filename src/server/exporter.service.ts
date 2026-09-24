@@ -73,6 +73,7 @@ export async function* exportDatasetJsonl(): AsyncGenerator<string> {
       where: { quality: 'ABSORB' },
       select: {
         id: true,
+        methodVersion: true,
         userRequest: true,
         aiQuestions: true,
         aiRecommendation: true,
@@ -140,6 +141,7 @@ type ConversationWithFilms = {
   reviewedBy: string | null;
   consensus: string | null;
   confidence: string | null;
+  methodVersion: number;
   createdAt: Date;
   films: readonly {
     role: string;
@@ -161,7 +163,10 @@ type ConversationWithFilms = {
 function buildLine(conversation: ConversationWithFilms): DatasetLine {
   return {
     id: conversation.id,
-    method_version: METHOD_VERSION,
+    // The version stored on the row, not the one in the constant today. A
+    // conversation was produced by the Method that was in force when it
+    // happened, and it keeps saying so however many times the prompt is edited.
+    method_version: conversation.methodVersion,
     recorded_at: toIso8601Utc(conversation.createdAt),
     user_request: conversation.userRequest,
     ai_questions: conversation.aiQuestions,

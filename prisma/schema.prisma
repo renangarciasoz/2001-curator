@@ -326,6 +326,11 @@ model Conversation {
   sessionId String? @map("session_id") @db.Uuid
   profileId String? @map("profile_id") @db.Uuid
 
+  /// Which Method the Indicador was following when this happened. Written at
+  /// record time, never at export time: the prompt changes, and a row must keep
+  /// saying which version produced it.
+  methodVersion Int @map("method_version")
+
   /// What the person wanted.
   userRequest String @map("user_request")
   /// What the AI asked before recommending. JSON array of strings.

@@ -4,6 +4,7 @@ import { z } from 'zod';
 
 import { ConversationNotFoundError } from '@/lib/app-error.util';
 import { applyQualityGate } from '@/lib/quality-gate.util';
+import { METHOD_VERSION } from '@/method/system-prompt.constant';
 
 import { db } from '../db.service';
 
@@ -111,6 +112,7 @@ export async function recordNewDiscard(input: DiscardNewInput): Promise<string> 
   const conversation = await db.conversation.create({
     data: {
       ...(input.session_id !== undefined ? { sessionId: input.session_id } : {}),
+      methodVersion: METHOD_VERSION,
       userRequest: input.user_request,
       aiQuestions: input.ai_questions,
       aiRecommendation: input.ai_recommendation,
@@ -162,6 +164,9 @@ function toCuratorReview(review: RecordFeedbackInput['reviews'][number]): Curato
 
 async function persist(input: RecordFeedbackInput, decision: GateDecision): Promise<string> {
   const data = {
+    // Stamped here, where the conversation happened — not at export time, which
+    // would relabel history every time the Method text changes.
+    methodVersion: METHOD_VERSION,
     userRequest: input.user_request,
     aiQuestions: input.ai_questions,
     aiRecommendation: input.ai_recommendation,
