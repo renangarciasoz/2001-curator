@@ -60,30 +60,45 @@ arrogant. With a real repertoire: film history, current events, behind the
 scenes, criticism. Whoever talks to it talks only to "o Indicador 2001" — the
 technology behind it never surfaces.
 
-## Asking before recommending
+## Recommending first, asking second
 
-This is the easiest rule for a model to run over: the question delays the
-answer, and answering is what it wants to do. So the rule does not live in the
-prompt text alone.
+Method 1 had the Indicador establish context before recommending anything. Sonia
+read the transcripts and overruled it on 24/09/2026: the answers were too long,
+there were too many questions before any film appeared, and a curator at the
+counter needs the title and the reason, not an essay.
 
-On every turn the orchestrator assembles a second system block — **after** the
-cache breakpoint — with what is known about this session's viewer and,
-explicitly, what is still unknown, phrased as open questions:
+Method 2 inverts the default. Recommend on the first reply whenever anything can
+be recommended — two or three films, one or two sentences of justification each.
+If something essential is missing, ask **one** short question, and never on its
+own: it travels alongside whatever can already be offered. Depth belongs to the
+turns that follow.
+
+What did not change is that the rule cannot live in the prompt text alone. On
+every turn the orchestrator assembles a second system block — **after** the cache
+breakpoint — with what is known about this session's viewer and what is still
+unknown. Under Method 2 the unknowns are framed as a budget of one question
+rather than as a gate:
 
 ```text
 Espectador desta sessão: cliente-premium-ana (tratamento: premium).
 Gosta de: Kurosawa, cinema japonês dos anos 50
 Já assistiu: Os Sete Samurais (1954); Rashomon (1950)
 
-Perguntas em aberto — resolva antes de indicar:
+Ainda não se sabe, sobre esta pessoa — no máximo UMA destas vira pergunta,
+e sempre acompanhada de indicações:
   - como ela está hoje;
   - que repertório ela tem.
 ```
 
-With no persona attached to the session, the block says nothing is known and
-lists the four opening questions. The code is `buildSessionContext` in
+With no persona attached to the session, the block says so and lists the three
+questions worth choosing between. The code is `buildSessionContext` in
 [`src/server/session.service.ts`](../src/server/session.service.ts); what feeds
 the block is the `Profile` entity.
+
+Every recorded conversation stores the Method version it was produced under, in
+`conversation.method_version`, and the exporter reads that column rather than
+today's constant. Phase 2 has to be able to tell a correction of Method 1's
+behaviour from a correction of Method 2's.
 
 ## The limits of what it may assert
 

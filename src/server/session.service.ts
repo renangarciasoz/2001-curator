@@ -253,12 +253,12 @@ export async function buildSessionContext(session: LoadedSession): Promise<strin
   if (session.profileId === null) {
     lines.push(
       '',
-      'Não há perfil de espectador ligado a esta sessão. Você ainda não sabe nada',
-      'sobre para quem é a indicação. Perguntas em aberto — faça-as antes de indicar:',
+      'Não há perfil de espectador ligado a esta sessão. Indique com o que a própria',
+      'mensagem trouxer — não peça o resto antes de indicar. Se faltar algo que muda',
+      'tudo, escolha UMA destas para perguntar, junto das sugestões:',
       '  - qual foi o último filme que emocionou a pessoa;',
       '  - se ela busca conforto, desafio ou descoberta;',
-      '  - para quem é, que idade tem, como está hoje;',
-      '  - que repertório ela já tem.',
+      '  - para quem é e como está hoje.',
     );
 
     return lines.join('\n');
@@ -310,10 +310,14 @@ export async function buildSessionContext(session: LoadedSession): Promise<strin
   }
 
   if (openQuestions.length > 0) {
-    lines.push('', 'Perguntas em aberto — resolva antes de indicar:');
+    lines.push(
+      '',
+      'Ainda não se sabe, sobre esta pessoa — no máximo UMA destas vira pergunta,',
+      'e sempre acompanhada de indicações:',
+    );
     lines.push(...openQuestions.map((question) => `  - ${question};`));
   } else {
-    lines.push('', 'Há contexto suficiente sobre esta pessoa. Pode indicar com justificativa.');
+    lines.push('', 'Há contexto suficiente sobre esta pessoa. Indique direto, com o porquê.');
   }
 
   return lines.join('\n');
