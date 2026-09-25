@@ -293,8 +293,8 @@ export function IndicatorChat({
           {turns.length === 0 ? (
             <div className="mt-2">
               <p className="text-[16px] leading-relaxed text-signal-dim text-pretty">
-                Conte o que a pessoa precisa. O Indicador já responde com dois ou três filmes e o
-                porquê de cada um — a conversa aprofunda depois.
+                Um diretor, um gênero, um filme que a pessoa amou, ou só o humor dela hoje. O
+                Indicador responde com dois ou três filmes e o porquê de cada um.
               </p>
 
               {/*

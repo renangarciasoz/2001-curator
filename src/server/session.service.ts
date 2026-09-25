@@ -253,12 +253,15 @@ export async function buildSessionContext(session: LoadedSession): Promise<strin
   if (session.profileId === null) {
     lines.push(
       '',
-      'Não há perfil de espectador ligado a esta sessão. Indique com o que a própria',
-      'mensagem trouxer — não peça o resto antes de indicar. Se faltar algo que muda',
-      'tudo, escolha UMA destas para perguntar, junto das sugestões:',
-      '  - qual foi o último filme que emocionou a pessoa;',
-      '  - se ela busca conforto, desafio ou descoberta;',
-      '  - para quem é e como está hoje.',
+      'Não há perfil de espectador ligado a esta sessão: tudo o que você sabe sobre',
+      'esta pessoa está na própria conversa. Leia-a antes de perguntar qualquer',
+      'coisa — o que ela já disse não se pergunta de novo.',
+      '',
+      'Se a porta for objetiva (diretor, gênero, país, época, um filme de',
+      'referência), indique com o que ela deu. Se for aberta, levante o que ainda',
+      'muda a escolha: faixa etária, o que já viu do que procura e o que achou, o',
+      'que prefere evitar, e o que quer hoje — rir, se emocionar, pensar,',
+      'descobrir.',
     );
 
     return lines.join('\n');
@@ -312,8 +315,8 @@ export async function buildSessionContext(session: LoadedSession): Promise<strin
   if (openQuestions.length > 0) {
     lines.push(
       '',
-      'Ainda não se sabe, sobre esta pessoa — no máximo UMA destas vira pergunta,',
-      'e sempre acompanhada de indicações:',
+      'Ainda não se sabe, sobre esta pessoa. Pergunte apenas o que puder mudar esta',
+      'indicação — e nada disso, se a procura dela já for objetiva o bastante:',
     );
     lines.push(...openQuestions.map((question) => `  - ${question};`));
   } else {

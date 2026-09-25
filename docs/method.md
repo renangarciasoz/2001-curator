@@ -34,10 +34,9 @@ a streaming algorithm, not a generic AI.
 
 ### Principles behind every recommendation
 
-- Never hand over a single title — build bridges, guide a journey. At most
-  **three options at a time**.
-- Always ask about the last film that moved the person.
-- Find out whether they want comfort, challenge, or discovery.
+- Never hand over a single title — build bridges, guide a journey. **Two or
+  three options**, one sentence of reasoning each.
+- Ask only what can change the recommendation, and never what was already said.
 - Consider the viewer's age, moment in life, and repertoire.
 - Respect each person's ripening time.
 - Do not hand out ready answers; build bridges.
@@ -60,45 +59,73 @@ arrogant. With a real repertoire: film history, current events, behind the
 scenes, criticism. Whoever talks to it talks only to "o Indicador 2001" — the
 technology behind it never surfaces.
 
-## Recommending first, asking second
+## The entry doors
 
-Method 1 had the Indicador establish context before recommending anything. Sonia
-read the transcripts and overruled it on 24/09/2026: the answers were too long,
-there were too many questions before any film appeared, and a curator at the
-counter needs the title and the reason, not an essay.
+Method 1 had the Indicador establish context before recommending anything.
+Sonia overruled it on 24/09/2026 — the answers were long and nothing was
+recommended until a questionnaire had been answered — and then, the same
+evening, overruled the replacement too. Method 2 had capped questions at one,
+which was the wrong shape: it made an objective request and a vague one behave
+identically.
 
-Method 2 inverts the default. Recommend on the first reply whenever anything can
-be recommended — two or three films, one or two sentences of justification each.
-If something essential is missing, ask **one** short question, and never on its
-own: it travels alongside whatever can already be offered. Depth belongs to the
-turns that follow.
+Her model is the door the person came through.
 
-What did not change is that the rule cannot live in the prompt text alone. On
-every turn the orchestrator assembles a second system block — **after** the cache
-breakpoint — with what is known about this session's viewer and what is still
-unknown. Under Method 2 the unknowns are framed as a budget of one question
-rather than as a gate:
+| Door      | Example                                                                            | What to ask                                                                                                                           |
+| --------- | ---------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| Objective | a director, an actor, a genre, a country, a period, "I loved X, something like it" | Only what is still missing. Often nothing — recommend.                                                                                |
+| Open      | "recommend me something", "something to laugh at today"                            | Age, what they have already seen of what they are after and what they made of it, what they would rather avoid, what they want today. |
+| Listings  | "what's on?", "anything good at the cinema?"                                       | Neither: no tool reaches this. Say so and offer the archive.                                                                          |
+
+Underneath the table there is one rule, and it is Sonia's sentence:
+
+> Não perguntar por perguntar. Perguntar somente aquilo cuja resposta possa
+> mudar a indicação.
+
+With a second rule beside it: never ask again what the person already said.
+Someone who writes "I'm 35, I love Blade Runner and Solaris, I hate action and
+I want something contemplative" has answered half the questionnaire, and asking
+anyway is what turns an assistant into a form.
+
+The answer shape is hers too — two or three films, one sentence each, and the
+third free to be a bet: something the person would not have asked for, offered
+because the curator believes it will land. That is the difference between
+curation and a catalogue.
+
+The rule does not live in the prompt text alone. On every turn the orchestrator
+assembles a second system block — **after** the cache breakpoint — with what is
+known about this session's viewer and what is still unknown, framed as what may
+be asked rather than as what must be:
 
 ```text
 Espectador desta sessão: cliente-premium-ana (tratamento: premium).
 Gosta de: Kurosawa, cinema japonês dos anos 50
 Já assistiu: Os Sete Samurais (1954); Rashomon (1950)
 
-Ainda não se sabe, sobre esta pessoa — no máximo UMA destas vira pergunta,
-e sempre acompanhada de indicações:
+Ainda não se sabe, sobre esta pessoa. Pergunte apenas o que puder mudar esta
+indicação — e nada disso, se a procura dela já for objetiva o bastante:
   - como ela está hoje;
   - que repertório ela tem.
 ```
 
-With no persona attached to the session, the block says so and lists the three
-questions worth choosing between. The code is `buildSessionContext` in
-[`src/server/session.service.ts`](../src/server/session.service.ts); what feeds
-the block is the `Profile` entity.
+With no persona attached, the block says the conversation itself is everything
+that is known, and to read it before asking. The code is `buildSessionContext`
+in [`src/server/session.service.ts`](../src/server/session.service.ts); what
+feeds the block is the `Profile` entity.
+
+### The two doors that do not open yet
+
+Listings and new releases are doors Sonia expects and the tools do not reach:
+`search_films`, `film_details` and `search_connections` all read the 2001
+archive and nothing else. The Method instructs the Indicador to say so in one
+sentence and offer the archive instead, because the alternative — inventing a
+première, a screen or a date — is the failure this project can least afford.
+
+Closing them needs a decision and a new tool, not a prompt edit.
 
 Every recorded conversation stores the Method version it was produced under, in
 `conversation.method_version`, and the exporter reads that column rather than
 today's constant. Phase 2 has to be able to tell a correction of Method 1's
-behaviour from a correction of Method 2's.
+behaviour from a correction of Method 3's.
 
 ## The limits of what it may assert
 
