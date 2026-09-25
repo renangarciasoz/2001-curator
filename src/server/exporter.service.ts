@@ -1,7 +1,6 @@
 import 'server-only';
 
 import { toIso8601Utc } from '@/lib/date.util';
-import { METHOD_VERSION } from '@/method/system-prompt.constant';
 
 import { db } from './db.service';
 

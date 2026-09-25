@@ -86,4 +86,25 @@ export default tseslint.config(
     ],
     ...tseslint.configs.disableTypeChecked,
   },
+
+  {
+    // `no-undef` comes from js.configs.recommended and applies to plain JS only
+    // — typescript-eslint switches it off for .ts, where the compiler already
+    // answers the question. These files are Node scripts with no type checking
+    // behind them, so the globals they use have to be declared.
+    //
+    // Listed by hand rather than pulled from the `globals` package: this is a
+    // short list that does not change, and it is not worth a dependency whose
+    // whole job is to know what `process` is.
+    files: ['**/*.mjs'],
+    languageOptions: {
+      globals: {
+        Buffer: 'readonly',
+        URL: 'readonly',
+        console: 'readonly',
+        fetch: 'readonly',
+        process: 'readonly',
+      },
+    },
+  },
 );

@@ -164,7 +164,10 @@ export async function deleteSession(sessionId: string, curator: Curator): Promis
     select: { curator: true, _count: { select: { conversations: true } } },
   });
 
-  if (session === null || session.curator !== curator) {
+  // A missing session and another curator's session answer the same way, so
+  // this cannot be used to probe for session ids: `undefined` never equals a
+  // curator name.
+  if (session?.curator !== curator) {
     throw new SessionNotFoundError(sessionId);
   }
 
