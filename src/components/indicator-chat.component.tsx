@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 
 import { readSseEvents } from '@/lib/sse-events.util';
-import { isArchiveTool } from '@/lib/transcript.type';
+import { isRecommendationTool } from '@/lib/transcript.type';
 
 import { AutoTextarea } from './auto-textarea.component';
 import { CorrectionPanel } from './correction-panel.component';
@@ -26,6 +26,7 @@ const TOOL_LABEL: Readonly<Record<string, string>> = {
   search_films: 'procurando no acervo',
   film_details: 'lendo a ficha',
   search_connections: 'consultando as pontes',
+  search_releases: 'vendo o que está em cartaz',
   record_feedback: 'registrando a avaliação',
 };
 
@@ -192,10 +193,10 @@ export function IndicatorChat({
           break;
         }
 
-        // Reaching the archive is what turns a question into a recommendation,
+        // Looking something up is what turns a question into a recommendation,
         // and a recommendation is the only thing there is to review. A failed
-        // search is not reaching it — hence the early break above.
-        if (isArchiveTool(event.name)) {
+        // search looked nothing up — hence the early break above.
+        if (isRecommendationTool(event.name)) {
           setHasRecommended(true);
         }
         break;

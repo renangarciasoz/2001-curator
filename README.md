@@ -206,7 +206,7 @@ src/
     indexing.service.ts   Text → vector → Qdrant
     exporter.service.ts   The Phase 2 JSONL
     embeddings/           Pluggable provider: voyage | openai | local
-    tools/                The four tools the model can call
+    tools/                The five tools the model can call
     indicator/            The tool-calling conversation loop
 prisma/                   schema.prisma + versioned migrations
 scripts/                  Ingestion, indexing, seeding and export CLIs
@@ -226,18 +226,27 @@ data/                     Factual fixture and demonstration curation
 5. `record_feedback` writes it, passing through the quality gate.
 6. `pnpm export:dataset` (or `/api/export`) produces the JSONL.
 
-### The four tools
+### The five tools
 
 Tool names and parameters are English because they are the API contract; the
 descriptions are Portuguese because they are prompt content, read alongside the
 Method.
 
-| Tool                 | Role                                                                |
-| -------------------- | ------------------------------------------------------------------- |
-| `search_films`       | Vector search in Qdrant by tone, theme and meaning — not by keyword |
-| `film_details`       | A film's factual record plus its curatorial layer                   |
-| `search_connections` | The bridges the curators built, with the reason for each            |
-| `record_feedback`    | Records the correction, passing through the quality gate            |
+| Tool                 | Role                                                                     |
+| -------------------- | ------------------------------------------------------------------------ |
+| `search_films`       | Vector search in Qdrant by tone, theme and meaning — not by keyword      |
+| `film_details`       | A film's factual record plus its curatorial layer                        |
+| `search_connections` | The bridges the curators built, with the reason for each                 |
+| `search_releases`    | What is in cinemas now, or opening next — TMDB, crossed with the archive |
+| `record_feedback`    | Records the correction, passing through the quality gate                 |
+
+`search_releases` is the one tool that does not read the archive, and it is
+bound by the two buckets like everything else: its synopses and scores are
+third-party lookup, nothing it returns is written anywhere — a listing cached
+in the database is a lie with a timestamp on it — and a film on the listing
+that the archive already knows comes back with its `film_id`, so the Indicador
+can call `film_details` and speak about it in the curators' words rather than
+TMDB's.
 
 ---
 

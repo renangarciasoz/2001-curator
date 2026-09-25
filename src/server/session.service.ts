@@ -1,7 +1,7 @@
 import 'server-only';
 
 import { SessionNotFoundError } from '@/lib/app-error.util';
-import { isArchiveTool } from '@/lib/transcript.type';
+import { isRecommendationTool } from '@/lib/transcript.type';
 
 import { db } from './db.service';
 
@@ -86,7 +86,7 @@ export async function loadTranscript(sessionId: string): Promise<Transcript> {
     return [{ author: message.role === 'assistant' ? 'INDICADOR' : 'CURATOR', text }];
   });
 
-  return { turns, hasRecommended: session.history.some(consultedArchive) };
+  return { turns, hasRecommended: session.history.some(madeRecommendation) };
 }
 
 /** How long an opening line stays before the list starts wrapping badly. */
@@ -188,13 +188,15 @@ function summarize(blocks: Prisma.JsonValue | undefined): string {
   return `${text.slice(0, OPENING_LENGTH).trimEnd()}…`;
 }
 
-/** Did this message reach for the archive? Tool blocks survive the reload; text alone does not. */
-function consultedArchive(message: Anthropic.Beta.BetaMessageParam): boolean {
+/** Did this message look anything up? Tool blocks survive a reload; text alone does not. */
+function madeRecommendation(message: Anthropic.Beta.BetaMessageParam): boolean {
   if (typeof message.content === 'string') {
     return false;
   }
 
-  return message.content.some((block) => block.type === 'tool_use' && isArchiveTool(block.name));
+  return message.content.some(
+    (block) => block.type === 'tool_use' && isRecommendationTool(block.name),
+  );
 }
 
 function extractText(content: Anthropic.Beta.BetaMessageParam['content']): string {

@@ -74,7 +74,7 @@ Her model is the door the person came through.
 | --------- | ---------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
 | Objective | a director, an actor, a genre, a country, a period, "I loved X, something like it" | Only what is still missing. Often nothing — recommend.                                                                                |
 | Open      | "recommend me something", "something to laugh at today"                            | Age, what they have already seen of what they are after and what they made of it, what they would rather avoid, what they want today. |
-| Listings  | "what's on?", "anything good at the cinema?"                                       | Neither: no tool reaches this. Say so and offer the archive.                                                                          |
+| Cinema    | "what's on?", "anything good at the cinema?"                                       | Usually nothing — `search_releases` answers it. See below.                                                                            |
 
 Underneath the table there is one rule, and it is Sonia's sentence:
 
@@ -112,15 +112,26 @@ that is known, and to read it before asking. The code is `buildSessionContext`
 in [`src/server/session.service.ts`](../src/server/session.service.ts); what
 feeds the block is the `Profile` entity.
 
-### The two doors that do not open yet
+### The cinema door
 
-Listings and new releases are doors Sonia expects and the tools do not reach:
-`search_films`, `film_details` and `search_connections` all read the 2001
-archive and nothing else. The Method instructs the Indicador to say so in one
-sentence and offer the archive instead, because the alternative — inventing a
-première, a screen or a date — is the failure this project can least afford.
+`search_releases` answers "what's on?" and "what's coming?" from TMDB's regional
+listing, defaulting to Brazil, because "in cinemas" is a fact about a country.
 
-Closing them needs a decision and a new tool, not a prompt edit.
+It is the only tool that does not read the archive, and the two buckets apply to
+it exactly as they apply to a TMDB synopsis: what it returns is third-party
+lookup, none of it is written to the database, and the Method forbids presenting
+it as the house's reading. A listing stored in Postgres would be a lie with a
+timestamp on it.
+
+What makes the answer 2001's rather than a cinema website's is the crossing. Each
+film comes back with `in_2001_archive` and, when the archive knows it, a
+`film_id` — so the Indicador calls `film_details` and talks about it in the
+curators' own words. The listing is the question; choosing two or three from it
+is the work.
+
+One thing stays out of reach and the Method still declares it: showtimes for a
+given screen, and which cinema is nearest to someone. TMDB does not carry it and
+no good public source covers Brazil.
 
 Every recorded conversation stores the Method version it was produced under, in
 `conversation.method_version`, and the exporter reads that column rather than

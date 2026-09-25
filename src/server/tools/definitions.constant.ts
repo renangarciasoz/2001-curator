@@ -1,7 +1,7 @@
 import 'server-only';
 
 /**
- * The Indicador's four tools, in the order it usually needs them.
+ * The Indicador's five tools, in the order it usually needs them.
  *
  * The order is fixed on purpose: the tool list sits in the prompt-cache prefix,
  * and reordering it on each request would invalidate the whole cache.
@@ -108,6 +108,47 @@ export const INDICADOR_TOOLS = [
         },
       },
       required: ['film_id'],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: 'search_releases',
+    description: [
+      'O que está em cartaz nos cinemas agora, ou o que estreia em seguida.',
+      '',
+      'Use quando a pessoa entrar pela porta do cinema: "o que tem de novo?", "tem',
+      'alguma coisa boa em cartaz?", "o que estreia essa semana?". É a única',
+      'ferramenta que não lê o acervo da 2001.',
+      '',
+      'Tudo o que ela devolve é base pública, não é a curadoria da casa: sinopse e',
+      'nota vêm do TMDB. Não apresente isso como leitura da 2001.',
+      '',
+      'Quando um filme da lista vier com in_2001_archive = true, ele existe no acervo:',
+      'chame film_details com o film_id e fale dele pelo que a 2001 sabe, não pela',
+      'sinopse do TMDB. Esse cruzamento é o que torna a resposta uma indicação da 2001',
+      'e não uma lista de cinema.',
+    ].join('\n'),
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        listing: {
+          type: 'string',
+          enum: ['now_playing', 'upcoming'],
+          description: 'now_playing: em cartaz hoje. upcoming: próximas estreias.',
+        },
+        region: {
+          type: 'string',
+          description:
+            'Código ISO do país, duas letras. Padrão BR — só mude se a pessoa estiver fora.',
+        },
+        limit: {
+          type: 'integer',
+          minimum: 1,
+          maximum: 20,
+          description: 'Quantos títulos trazer. Padrão 12.',
+        },
+      },
+      required: ['listing'],
       additionalProperties: false,
     },
   },

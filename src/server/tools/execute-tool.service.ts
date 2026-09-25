@@ -6,6 +6,7 @@ import { FilmDetailsInputSchema, filmDetails } from './film-details.service';
 import { RecordFeedbackInputSchema, recordFeedback } from './record-feedback.service';
 import { SearchConnectionsInputSchema, searchConnections } from './search-connections.service';
 import { SearchFilmsInputSchema, searchFilms } from './search-films.service';
+import { SearchReleasesInputSchema, searchReleases } from './search-releases.service';
 
 export type ToolResult = {
   /** Serialized JSON, ready to become the content of a `tool_result` block. */
@@ -71,6 +72,17 @@ async function dispatch(
       const input = SearchConnectionsInputSchema.parse(args);
 
       return JSON.stringify({ connections: await searchConnections(input) });
+    }
+
+    case 'search_releases': {
+      const input = SearchReleasesInputSchema.parse(args);
+
+      return JSON.stringify({
+        // Named for what it is at every layer. The model sees this key beside
+        // the data, and the data is not the archive's.
+        source: 'tmdb_public_listing',
+        films: await searchReleases(input, signal),
+      });
     }
 
     case 'record_feedback': {
