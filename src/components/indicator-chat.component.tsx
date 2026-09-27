@@ -8,6 +8,7 @@ import { isRecommendationTool } from '@/lib/transcript.type';
 
 import { AutoTextarea } from './auto-textarea.component';
 import { CorrectionPanel } from './correction-panel.component';
+import { ThreeFilmsForm } from './three-films-form.component';
 
 import type { Transcript, TranscriptTurn } from '@/lib/transcript.type';
 
@@ -293,10 +294,12 @@ export function IndicatorChat({
 
           {turns.length === 0 ? (
             <div className="mt-2">
-              <p className="text-[16px] leading-relaxed text-signal-dim text-pretty">
-                Um diretor, um gênero, um filme que a pessoa amou, ou só o humor dela hoje. O
-                Indicador responde com dois ou três filmes e o porquê de cada um.
-              </p>
+              <ThreeFilmsForm
+                disabled={inFlight}
+                onSubmit={(message) => {
+                  void send(message);
+                }}
+              />
 
               {/*
                 Folded away by default. Naming a persona is useful and rare —
@@ -472,7 +475,7 @@ export function IndicatorChat({
                 cut in half on a phone. The empty state above carries the
                 longer explanation.
               */
-              placeholder="Um casal, gostos diferentes…"
+              placeholder="Ou escreva direto…"
               className="field max-h-40 resize-none disabled:opacity-60"
               onChange={(event) => {
                 setDraft(event.target.value);

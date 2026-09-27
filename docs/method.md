@@ -34,8 +34,8 @@ a streaming algorithm, not a generic AI.
 
 ### Principles behind every recommendation
 
-- Never hand over a single title — build bridges, guide a journey. **Two or
-  three options**, one sentence of reasoning each.
+- Never hand over a single title — build bridges, guide a journey. **Three at
+  most, with no exception**, each with its aperitivo.
 - Ask only what can change the recommendation, and never what was already said.
 - Consider the viewer's age, moment in life, and repertoire.
 - Respect each person's ripening time.
@@ -59,7 +59,50 @@ arrogant. With a real repertoire: film history, current events, behind the
 scenes, criticism. Whoever talks to it talks only to "o Indicador 2001" — the
 technology behind it never surfaces.
 
-## The entry doors
+## The main door: which films stayed with you
+
+Sonia's design, 26/09/2026, and the shape the product now opens in: three
+fields, three films the person loved, and a button. No genre, no mood, no age.
+
+> Tem mais uma coisa muito 2001 nisso: o sistema não começa perguntando "quem é
+> você?". Ele pergunta algo muito mais gostoso: "quais filmes ficaram com
+> você?". A resposta já conta uma história sobre aquela pessoa.
+
+It takes seconds, it does not read as a questionnaire, and it hands the model
+more than a form would. `ThreeFilmsForm` sends it as a sentence — "Filmes que
+ficaram comigo: …" — rather than as a structured payload, because the transcript
+is the dataset's record of what was said and an object smuggled into it would
+make the conversation unreadable later.
+
+What the Method does with that list is the whole point:
+
+> Quando isso acontecer, **não procure filmes parecidos com aqueles**. Isso seria
+> pobre, e é o que qualquer algoritmo faz.
+
+It reads the three as a portrait — memory, how lives cross through time, complex
+characters, a camera language, humour, rhythm, music, narrative rupture — and
+that reading, never the titles, is what becomes the `search_films` criteria.
+Sometimes the thread is in the contrast between the three rather than in what
+they share.
+
+### Three, and the aperitivo
+
+Three is a ceiling with no exception, because abundance is the problem the store
+exists to solve: the person already has an infinite shelf at home, and that is
+precisely why they came to talk to someone. Four titles is not generosity, it is
+cowardice.
+
+Each one carries an _aperitivo_ — a sentence tying the film to what stayed with
+that person, in the voice of the counter:
+
+> "Se o que ficou em você de As Horas foi a maneira como vidas diferentes se
+> atravessam pelo tempo, eu começaria por aqui…"
+
+Not "Drama de 2003, dirigido por X, sobre Y". A bureaucratic synopsis is what
+every site already gives; the aperitivo is the only part only a curator can
+write.
+
+## The other entry doors
 
 Method 1 had the Indicador establish context before recommending anything.
 Sonia overruled it on 24/09/2026 — the answers were long and nothing was
@@ -86,7 +129,7 @@ Someone who writes "I'm 35, I love Blade Runner and Solaris, I hate action and
 I want something contemplative" has answered half the questionnaire, and asking
 anyway is what turns an assistant into a form.
 
-The answer shape is hers too — two or three films, one sentence each, and the
+The answer shape is hers too — at most three films, an aperitivo each, and the
 third free to be a bet: something the person would not have asked for, offered
 because the curator believes it will land. That is the difference between
 curation and a catalogue.
