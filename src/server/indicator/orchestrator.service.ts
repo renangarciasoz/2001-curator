@@ -24,6 +24,23 @@ import { executeTool } from '../tools/execute-tool.service';
  */
 const MAX_ITERATIONS = 8;
 
+/**
+ * How long a turn may keep starting new work.
+ *
+ * This is not the same thing as the route's `maxDuration`, and the gap between
+ * them is the point: when the host kills a function there is no `finally`, no
+ * catch, nothing — so the assistant message never gets persisted and the
+ * curator reloads to find her question with no answer under it.
+ *
+ * Stopping ourselves first turns that into an ordinary ending: whatever the
+ * Indicador managed to write is saved, and it says why it stopped. The margin
+ * has to cover one model call already in flight plus the writes that follow it.
+ *
+ * Keep it comfortably below `maxDuration` in `app/api/chat/route.ts`. If that
+ * value had to be lowered to match a hosting plan's ceiling, lower this too.
+ */
+const TURN_BUDGET_MS = 240_000;
+
 export type IndicadorEvent =
   | { kind: 'text'; delta: string }
   | { kind: 'tool'; name: string; state: 'start' | 'end'; error?: boolean }
@@ -74,7 +91,28 @@ async function* drive(
 
   let fullText = '';
 
+  const startedAt = Date.now();
+
   for (let iteration = 0; iteration < MAX_ITERATIONS; iteration += 1) {
+    // Checked before starting work, never in the middle of it: interrupting a
+    // model call already in flight would lose the text it is writing, which is
+    // the thing this budget exists to protect.
+    if (Date.now() - startedAt > TURN_BUDGET_MS) {
+      console.error(
+        `Conversation ${sessionId} ran out of turn budget at iteration ${String(iteration)}`,
+      );
+
+      yield {
+        kind: 'error',
+        code: 'turn_budget_spent',
+        message:
+          'O Indicador levou tempo demais nesta consulta e parou aqui. ' +
+          'O que ele já escreveu está salvo — tente pedir de forma mais direta.',
+      };
+
+      return;
+    }
+
     const stream = client.beta.messages.stream(
       {
         model: env.ANTHROPIC_MODEL,

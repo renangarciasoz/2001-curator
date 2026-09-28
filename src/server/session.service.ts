@@ -59,11 +59,49 @@ export async function loadSession(sessionId: string): Promise<LoadedSession> {
     sessionId: session.id,
     curator: session.curator,
     profileId: session.profileId,
-    history: session.messages.map((message) => ({
-      role: message.author === 'INDICADOR' ? ('assistant' as const) : ('user' as const),
-      content: readBlocks(message.blocks),
-    })),
+    history: mergeAdjacentRoles(
+      session.messages.map((message) => ({
+        role: message.author === 'INDICADOR' ? ('assistant' as const) : ('user' as const),
+        content: readBlocks(message.blocks),
+      })),
+    ),
   };
+}
+
+/**
+ * Collapses neighbouring messages that share a role into one.
+ *
+ * Every message is persisted the moment it exists, which is what lets a session
+ * resume after a dropped connection — but it also means a turn that died before
+ * the Indicador answered leaves a user message with no assistant message after
+ * it. The next turn then appends a second user message, and the history handed
+ * to the model has two in a row.
+ *
+ * Rather than depend on how the API feels about that, the shape is made
+ * well-formed here. Merging loses nothing: the blocks stay in order, in one
+ * message, exactly as if they had been sent together.
+ */
+function mergeAdjacentRoles(
+  messages: readonly Anthropic.Beta.BetaMessageParam[],
+): Anthropic.Beta.BetaMessageParam[] {
+  const merged: Anthropic.Beta.BetaMessageParam[] = [];
+
+  for (const message of messages) {
+    const previous = merged.at(-1);
+
+    if (previous?.role !== message.role) {
+      merged.push({ role: message.role, content: [...asBlocks(message.content)] });
+      continue;
+    }
+
+    previous.content = [...asBlocks(previous.content), ...asBlocks(message.content)];
+  }
+
+  return merged;
+}
+
+function asBlocks(content: Anthropic.Beta.BetaMessageParam['content']): ContentBlock[] {
+  return typeof content === 'string' ? [{ type: 'text', text: content }] : [...content];
 }
 
 /**
@@ -72,21 +110,43 @@ export async function loadSession(sessionId: string): Promise<LoadedSession> {
  * Tool and reasoning blocks are left out: the curator wants the conversation,
  * not the plumbing. They remain intact in the database because the loop needs
  * them on every turn.
+ *
+ * Reads the stored messages rather than `loadSession`, because the two views
+ * genuinely differ: the model's history merges neighbouring messages that share
+ * a role, and doing that here would show two questions asked after a failed
+ * turn as a single bubble the curator never wrote.
+ *
+ * @throws {SessionNotFoundError} when the session does not exist.
  */
 export async function loadTranscript(sessionId: string): Promise<Transcript> {
-  const session = await loadSession(sessionId);
+  const session = await db.session.findUnique({
+    where: { id: sessionId },
+    select: {
+      messages: { select: { author: true, blocks: true }, orderBy: { position: 'asc' } },
+    },
+  });
 
-  const turns = session.history.flatMap<TranscriptTurn>((message) => {
-    const text = extractText(message.content);
+  if (session === null) {
+    throw new SessionNotFoundError(sessionId);
+  }
+
+  const turns = session.messages.flatMap<TranscriptTurn>((message) => {
+    const text = extractText(readBlocks(message.blocks));
 
     if (text.length === 0) {
       return [];
     }
 
-    return [{ author: message.role === 'assistant' ? 'INDICADOR' : 'CURATOR', text }];
+    return [{ author: message.author === 'INDICADOR' ? 'INDICADOR' : 'CURATOR', text }];
   });
 
-  return { turns, hasRecommended: session.history.some(madeRecommendation) };
+  const hasRecommended = session.messages.some((message) =>
+    readBlocks(message.blocks).some(
+      (block) => block.type === 'tool_use' && isRecommendationTool(block.name),
+    ),
+  );
+
+  return { turns, hasRecommended };
 }
 
 /** How long an opening line stays before the list starts wrapping badly. */
@@ -189,17 +249,6 @@ function summarize(blocks: Prisma.JsonValue | undefined): string {
   }
 
   return `${text.slice(0, OPENING_LENGTH).trimEnd()}…`;
-}
-
-/** Did this message look anything up? Tool blocks survive a reload; text alone does not. */
-function madeRecommendation(message: Anthropic.Beta.BetaMessageParam): boolean {
-  if (typeof message.content === 'string') {
-    return false;
-  }
-
-  return message.content.some(
-    (block) => block.type === 'tool_use' && isRecommendationTool(block.name),
-  );
 }
 
 function extractText(content: Anthropic.Beta.BetaMessageParam['content']): string {
