@@ -117,7 +117,17 @@ Her model is the door the person came through.
 | --------- | ---------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
 | Objective | a director, an actor, a genre, a country, a period, "I loved X, something like it" | Only what is still missing. Often nothing — recommend.                                                                                |
 | Open      | "recommend me something", "something to laugh at today"                            | Age, what they have already seen of what they are after and what they made of it, what they would rather avoid, what they want today. |
+| Title     | "do you have Paris, Texas?", "tell me about Cinema Paradiso"                       | Nothing. Look it up, say plainly whether the archive has it, then bridge.                                                             |
 | Cinema    | "what's on?", "anything good at the cinema?"                                       | Usually nothing — `search_releases` answers it. See below.                                                                            |
+
+The title row is the one Sonia called the second entrance — "já sabe o que quer
+assistir? busque o filme aqui". It is answered by the composer rather than by a
+search screen, deliberately: a lookup produces no dataset line, the store's own
+system already knows what is in stock, and a search page over an archive of
+fourteen films is an empty page. What the conversation adds is the second half
+of the answer, which is the half that is 2001's — not "yes, aisle 3" but "yes,
+and since you like that, let me show you something". Whether Sonia meant stock
+or curation is worth confirming with her before building anything.
 
 Underneath the table there is one rule, and it is Sonia's sentence:
 
