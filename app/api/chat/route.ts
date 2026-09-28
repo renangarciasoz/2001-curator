@@ -64,14 +64,40 @@ async function requireOwnSession(sessionId: string, curator: string): Promise<vo
   }
 }
 
+/**
+ * How often to prove the connection is still alive.
+ *
+ * A turn can spend forty seconds on tool calls without emitting a single
+ * token. To everything between here and the browser — proxies, load balancers,
+ * the client's own timers — silence on a socket is indistinguishable from a
+ * dead server. The browser's watchdog is set to several times this interval, so
+ * a missed beat means something really is wrong.
+ */
+const HEARTBEAT_MS = 15_000;
+
 function stream(events: AsyncGenerator<IndicadorEvent>): Response {
   const encoder = new TextEncoder();
 
+  // Enqueueing into a closed or cancelled controller throws, and the heartbeat
+  // fires on a timer that knows about neither. Declared out here because
+  // `cancel` has to be able to clear it.
+  let open = true;
+
   const body = new ReadableStream<Uint8Array>({
     async start(controller) {
+      const send = (payload: unknown): void => {
+        if (open) {
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify(payload)}\n\n`));
+        }
+      };
+
+      const heartbeat = setInterval(() => {
+        send({ kind: 'ping' });
+      }, HEARTBEAT_MS);
+
       try {
         for await (const event of events) {
-          controller.enqueue(encoder.encode(`data: ${JSON.stringify(event)}\n\n`));
+          send(event);
         }
       } catch (e) {
         console.error(`Chat stream interrupted: ${describeError(e)}`);
@@ -79,13 +105,25 @@ function stream(events: AsyncGenerator<IndicadorEvent>): Response {
         const failure: IndicadorEvent = {
           kind: 'error',
           code: 'stream_interrupted',
-          message: 'A conversa foi interrompida. Recarregue a página.',
+          message: 'A conversa foi interrompida. O que já foi dito está salvo.',
         };
 
-        controller.enqueue(encoder.encode(`data: ${JSON.stringify(failure)}\n\n`));
+        send(failure);
       } finally {
-        controller.close();
+        clearInterval(heartbeat);
+
+        if (open) {
+          open = false;
+          controller.close();
+        }
       }
+    },
+
+    cancel() {
+      // The browser went away — aborted, navigated, closed the tab. The
+      // generator's own `signal` stops the model; this just stops us writing
+      // into a stream nobody is reading.
+      open = false;
     },
   });
 

@@ -22,6 +22,39 @@ type IndicadorEvent =
 
 const EVENT_KINDS = ['text', 'tool', 'refusal', 'end', 'error'] as const;
 
+/**
+ * How long silence is allowed to last before the turn is treated as lost.
+ *
+ * The route sends a heartbeat every 15 seconds, so this is three missed beats:
+ * long enough that a slow tool call is never mistaken for a dead connection,
+ * short enough that nobody sits in front of a frozen screen wondering.
+ */
+const SILENCE_LIMIT_MS = 50_000;
+
+/** Matches `maxDuration` on the chat route. Past it the function is gone anyway. */
+const TURN_LIMIT_MS = 300_000;
+
+/** Why a turn ended early — each one deserves a different sentence. */
+type Interruption = 'curator' | 'silence' | 'ceiling';
+
+function explainInterruption(reason: Interruption | null): string | null {
+  switch (reason) {
+    case 'curator':
+      // They stopped it on purpose. Reporting that back as an error would be
+      // the interface arguing with the person using it.
+      return null;
+
+    case 'silence':
+      return 'O Indicador parou de responder no meio. O que chegou está salvo — pode enviar de novo.';
+
+    case 'ceiling':
+      return 'A resposta passou de cinco minutos e foi interrompida. Tente pedir de forma mais direta.';
+
+    default:
+      return 'A conexão caiu no meio da conversa. O que já foi dito está salvo.';
+  }
+}
+
 /** Portuguese: shown to the curator while a tool runs. */
 const TOOL_LABEL: Readonly<Record<string, string>> = {
   search_films: 'procurando no acervo',
@@ -59,6 +92,7 @@ export function IndicatorChat({
   const [hasRecommended, setHasRecommended] = useState(initialTranscript.hasRecommended);
 
   const partial = useRef('');
+  const attempt = useRef<{ controller: AbortController; reason: Interruption | null } | null>(null);
   const scroller = useRef<HTMLDivElement>(null);
   const panel = useRef<HTMLDivElement>(null);
 
@@ -89,6 +123,30 @@ export function IndicatorChat({
     }
   }, [reviewing]);
 
+  // Leaving the page mid-turn: stop the model instead of leaving it answering
+  // into a stream nobody will read. Runs once, on unmount.
+  useEffect(
+    () => () => {
+      attempt.current?.controller.abort();
+    },
+    [],
+  );
+
+  /**
+   * One turn, with three independent ways out.
+   *
+   * The previous version had none, and the `finally` that clears `inFlight`
+   * only runs once the stream loop ends. A server that stops sending without
+   * closing the connection — a killed function, a proxy holding a half-open
+   * socket — left the composer disabled and "pensando" on screen forever, with
+   * a page reload as the only escape.
+   *
+   * So: the curator can stop it, silence longer than a few heartbeats stops it,
+   * and a ceiling matching the route's `maxDuration` stops it regardless. All
+   * three are the same `AbortController`, which also reaches the server through
+   * `request.signal` and stops the model rather than leaving it running for
+   * nobody.
+   */
   async function send(message: string): Promise<void> {
     setError(null);
     setToolFailure(null);
@@ -102,11 +160,43 @@ export function IndicatorChat({
       { author: 'INDICADOR', text: '' },
     ]);
 
+    const controller = new AbortController();
+
+    attempt.current = { controller, reason: null };
+
+    let idle: ReturnType<typeof setTimeout> | undefined;
+
+    // Reset by every payload, heartbeats included — which is what makes a long
+    // silent tool call different from a dead connection.
+    const expectSomething = (): void => {
+      clearTimeout(idle);
+
+      idle = setTimeout(() => {
+        if (attempt.current !== null) {
+          attempt.current.reason = 'silence';
+        }
+
+        controller.abort();
+      }, SILENCE_LIMIT_MS);
+    };
+
+    const ceiling = setTimeout(() => {
+      if (attempt.current !== null) {
+        attempt.current.reason = 'ceiling';
+      }
+
+      controller.abort();
+    }, TURN_LIMIT_MS);
+
     try {
-      const id = sessionId ?? (await openSession());
+      expectSomething();
+
+      const id = sessionId ?? (await openSession(controller.signal));
 
       if (id === null) {
-        setError('Não foi possível abrir a conversa.');
+        setError('Não foi possível abrir a conversa. Tente de novo.');
+        forgetEmptyAnswer();
+        setDraft(message);
         return;
       }
 
@@ -114,14 +204,19 @@ export function IndicatorChat({
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ sessionId: id, message }),
+        signal: controller.signal,
       });
 
       if (!response.ok || response.body === null) {
         setError('O Indicador não respondeu. Tente de novo.');
+        forgetEmptyAnswer();
+        setDraft(message);
         return;
       }
 
       for await (const payload of readSseEvents(response.body)) {
+        expectSomething();
+
         const event = toIndicadorEvent(payload);
 
         if (event !== null) {
@@ -129,27 +224,74 @@ export function IndicatorChat({
         }
       }
 
+      // A stream that closed politely without ever saying anything is still a
+      // failed turn — and the only one that would otherwise leave no trace on
+      // screen at all, just an empty bubble and a composer back to normal.
+      if (partial.current.length === 0) {
+        setError((previous) => previous ?? 'O Indicador não chegou a responder. Tente de novo.');
+        forgetEmptyAnswer();
+        setDraft(message);
+      }
+
       // Brings the rail up to date with the turn that just happened.
       router.refresh();
     } catch {
-      setError('A conexão caiu no meio da conversa. O que já foi dito está salvo.');
+      setError(explainInterruption(attempt.current?.reason ?? null));
+      forgetEmptyAnswer();
+
+      // Retyping a message that was never answered is pure loss. Only when
+      // nothing arrived: once there is an answer on screen, putting the
+      // question back in the composer would be confusing rather than helpful.
+      if (partial.current.length === 0) {
+        setDraft(message);
+      }
+
+      router.refresh();
     } finally {
+      clearTimeout(idle);
+      clearTimeout(ceiling);
+      attempt.current = null;
       setInFlight(false);
       setTool(null);
     }
+  }
+
+  /** Stops the turn in flight. The server hears about it through the signal. */
+  function stop(): void {
+    if (attempt.current !== null) {
+      attempt.current.reason = 'curator';
+      attempt.current.controller.abort();
+    }
+  }
+
+  /**
+   * Removes the placeholder answer when the turn produced no text.
+   *
+   * An empty bubble labelled "O Indicador" reads as a reply that said nothing,
+   * which is a worse account of what happened than no bubble at all.
+   */
+  function forgetEmptyAnswer(): void {
+    setTurns((previous) => {
+      const last = previous.at(-1);
+
+      return last?.author === 'INDICADOR' && last.text.length === 0
+        ? previous.slice(0, -1)
+        : previous;
+    });
   }
 
   /**
    * A conversation is created by writing in it, not by pressing a button
    * first. Sessions opened and abandoned would otherwise pile up in the rail.
    */
-  async function openSession(): Promise<string | null> {
+  async function openSession(signal: AbortSignal): Promise<string | null> {
     const named = persona.trim();
 
     const response = await fetch('/api/session', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify(named.length > 0 ? { userId: named } : {}),
+      signal,
     });
 
     if (!response.ok) {
@@ -207,6 +349,10 @@ export function IndicatorChat({
         break;
 
       case 'end':
+        // Kept in the ref too: it is what tells the caller the turn produced
+        // an answer, and a reply that arrived whole rather than in deltas
+        // would otherwise look like silence.
+        partial.current = event.fullText;
         replaceLastTurn(event.fullText);
         break;
 
@@ -492,17 +638,33 @@ export function IndicatorChat({
               }}
             />
 
-            <button
-              type="button"
-              aria-label={inFlight ? 'Enviando' : 'Enviar'}
-              aria-busy={inFlight}
-              disabled={inFlight || draft.trim().length === 0}
-              className="btn btn-primary shrink-0 px-4"
-              onClick={submit}
-            >
-              {/* A still ellipsis reads as frozen, which is what it replaced. */}
-              {inFlight ? <span aria-hidden="true" className="spinner" /> : '→'}
-            </button>
+            {/*
+              While a turn is in flight this is a stop button, not a disabled
+              send button. A disabled control is a dead end: it was the only
+              thing on screen when the stream hung, and it offered the curator
+              nothing to do about it.
+            */}
+            {inFlight ? (
+              <button
+                type="button"
+                aria-label="Parar"
+                className="btn btn-quiet shrink-0 gap-2 px-4"
+                onClick={stop}
+              >
+                <span aria-hidden="true" className="spinner" />
+                Parar
+              </button>
+            ) : (
+              <button
+                type="button"
+                aria-label="Enviar"
+                disabled={draft.trim().length === 0}
+                className="btn btn-primary shrink-0 px-4"
+                onClick={submit}
+              >
+                →
+              </button>
+            )}
           </div>
 
           {!hasRecommended && turns.length > 0 && !inFlight ? (
